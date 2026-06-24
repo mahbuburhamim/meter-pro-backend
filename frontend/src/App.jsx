@@ -52,7 +52,7 @@ export default function App() {
   const [loginMeterNo, setLoginMeterNo] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showServerModal, setShowServerModal] = useState(false);
-  const [inputUrl, setInputUrl] = useState(localStorage.getItem('backend_url') || 'http://192.168.0.56:8000');
+  const [inputUrl, setInputUrl] = useState(localStorage.getItem('backend_url') || 'https://meter-pro-api.onrender.com');
 
   // Fetch initial data
   useEffect(() => {
@@ -493,7 +493,7 @@ export default function App() {
                   <input 
                     type="text"
                     required
-                    placeholder="যেমন: http://192.168.0.56:8000"
+                    placeholder="যেমন: https://meter-pro-api.onrender.com"
                     value={inputUrl}
                     onChange={(e) => setInputUrl(e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-emerald-700"

@@ -253,7 +253,7 @@ export default function Settings({
               type="text"
               value={inputUrl}
               onChange={(e) => setInputUrl(e.target.value)}
-              placeholder="যেমন: http://192.168.1.100:8000"
+              placeholder="যেমন: https://meter-pro-api.onrender.com"
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-emerald-700"
             />
             <button
