@@ -51,44 +51,52 @@ export default function Dashboard({
     status
   } = meter;
 
-  const [toastMessage, setToastMessage] = useState(null);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const handleRechargeClick = async () => {
+  const toBanglaDigits = (num) => {
+    if (!num) return '';
+    const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return num.toString().split('').map(char => {
+      const digit = parseInt(char);
+      return isNaN(digit) ? char : banglaDigits[digit];
+    }).join('');
+  };
+
+  const handleCopyMeterNumber = async () => {
     if (!meter_number) return;
     try {
       await Clipboard.write({
         string: meter_number
       });
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       try {
         await navigator.clipboard.writeText(meter_number);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       } catch (e) {
         console.error("Failed to copy meter number", e);
       }
     }
+  };
 
-    setToastMessage("মিটার নাম্বার কপি হয়েছে — bKash-এ Pay Bill > Electricity > NESCO সিলেক্ট করে পেস্ট করুন।");
-    
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
-
-    setTimeout(async () => {
-      const packageIdentifier = 'com.bKash.customerapp';
-      try {
-        const { value } = await AppLauncher.canOpenUrl({ url: packageIdentifier });
-        if (value) {
-          await AppLauncher.openUrl({ url: packageIdentifier });
-        } else {
-          await AppLauncher.openUrl({ 
-            url: `https://play.google.com/store/apps/details?id=${packageIdentifier}` 
-          });
-        }
-      } catch (err) {
-        console.error("Failed to launch app/store", err);
-        window.open(`https://play.google.com/store/apps/details?id=${packageIdentifier}`, '_blank');
+  const handleLaunchBkash = async () => {
+    const packageIdentifier = 'com.bKash.customerapp';
+    try {
+      const { value } = await AppLauncher.canOpenUrl({ url: packageIdentifier });
+      if (value) {
+        await AppLauncher.openUrl({ url: packageIdentifier });
+      } else {
+        await AppLauncher.openUrl({ 
+          url: `https://play.google.com/store/apps/details?id=${packageIdentifier}` 
+        });
       }
-    }, 1500);
+    } catch (err) {
+      console.error("Failed to launch app/store", err);
+      window.open(`https://play.google.com/store/apps/details?id=${packageIdentifier}`, '_blank');
+    }
   };
 
   const {
@@ -205,7 +213,7 @@ export default function Dashboard({
       {/* Row of Three Action Buttons */}
       <div className="grid grid-cols-3 gap-3 px-2">
         <button 
-          onClick={handleRechargeClick}
+          onClick={() => setShowRechargeModal(true)}
           className="premium-card p-4 flex flex-col items-center gap-2 text-center hover:scale-[1.02] active:scale-[0.98]"
         >
           <div className="p-3 bg-amber-50 text-amber-500 rounded-2xl">
@@ -350,10 +358,64 @@ export default function Dashboard({
         </div>
       )}
 
-      {toastMessage && (
-        <div className="fixed inset-x-4 bottom-24 bg-gray-900/95 text-white p-4 rounded-2xl text-xs font-bold z-50 shadow-xl border border-gray-800 animate-in fade-in slide-in-from-bottom-4 duration-200 flex flex-col items-center text-center gap-1">
-          <span className="text-[#EDE9FE] text-[10px] font-black uppercase tracking-wider">নির্দেশনা</span>
-          <span>{toastMessage}</span>
+      {/* Recharge Modal */}
+      {showRechargeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs">
+          <div className="premium-card w-full max-w-sm p-6 border border-gray-100 shadow-2xl mx-4 animate-in fade-in zoom-in-95 duration-200 space-y-6 relative">
+            {/* Close Button */}
+            <button 
+              onClick={() => { setShowRechargeModal(false); setCopied(false); }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 hover:bg-gray-50 rounded-full transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+
+            <div className="text-center space-y-2 pt-2">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">মিটার নম্বর</span>
+              <h3 className="text-3xl font-black text-gray-900 tracking-tight">{toBanglaDigits(meter_number)}</h3>
+            </div>
+
+            {/* Copy Button */}
+            <button
+              onClick={handleCopyMeterNumber}
+              className={`w-full py-4 rounded-2xl font-black text-sm transition flex items-center justify-center gap-2 border ${
+                copied 
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm shadow-emerald-50' 
+                  : 'bg-[#EDE9FE] border-[#7C6FF0]/10 text-[#5B4FCF] hover:bg-[#dcd5fc]'
+              }`}
+            >
+              {copied ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="animate-in zoom-in-50"><path d="M20 6 9 17l-5-5"/></svg>
+                  কপি হয়েছে!
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  মিটার নাম্বার কপি করুন
+                </>
+              )}
+            </button>
+
+            {/* Instruction */}
+            <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl flex items-start gap-3">
+              <div className="p-2 bg-amber-50 text-amber-600 rounded-xl flex-shrink-0 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              </div>
+              <p className="text-xs text-gray-600 font-bold leading-relaxed pt-0.5 text-left">
+                bKash-এ Pay Bill &gt; Electricity &gt; NESCO সিলেক্ট করে পেস্ট করুন।
+              </p>
+            </div>
+
+            {/* bKash Launcher Button */}
+            <button
+              onClick={handleLaunchBkash}
+              className="w-full py-4 bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white font-black rounded-2xl transition flex items-center justify-center gap-2 text-sm shadow-lg shadow-indigo-100 active:scale-[0.98]"
+            >
+              <span>বিকাশে প্রবেশ করুন</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
         </div>
       )}
     </div>
