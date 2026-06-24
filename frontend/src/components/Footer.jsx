@@ -10,7 +10,7 @@ export default function Footer() {
 
   return (
     <footer className="w-full py-6 mt-12 border-t border-gray-800 text-center">
-      <p className="text-xs text-gray-500 font-light tracking-wider hover:text-emerald-500 transition-colors duration-300">
+      <p className="text-xs text-gray-500 font-light tracking-wider hover:text-[#7C6FF0] transition-colors duration-300">
         Made by{' '}
         <a
           href="https://www.facebook.com/mahbuburhamimofficial/"

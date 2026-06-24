@@ -122,7 +122,7 @@ export default function Settings({
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h2 className="text-xl font-black text-gray-900">সেটিংস</h2>
-        <div className="p-2.5 rounded-full bg-emerald-50 text-emerald-700">
+        <div className="p-2.5 rounded-full bg-[#EDE9FE] text-[#7C6FF0]">
           <SettingsIcon className="w-5 h-5" />
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function Settings({
               <select 
                 value={selectedMeterId}
                 onChange={(e) => handleMeterChangeForThreshold(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-700"
+                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#7C6FF0]"
               >
                 {meters.map(m => (
                   <option key={m.id} value={m.id}>{m.label} ({m.meter_number})</option>
@@ -211,7 +211,7 @@ export default function Settings({
                 onClick={() => handlePresetThreshold(val)}
                 className={`py-2.5 rounded-xl text-xs font-bold border transition ${
                   customThreshold === val
-                    ? 'bg-emerald-950 border-emerald-950 text-white shadow'
+                    ? 'bg-[#5B4FCF] border-[#5B4FCF] text-white shadow'
                     : 'bg-white border-gray-100 text-gray-500 hover:text-gray-800'
                 }`}
               >
@@ -227,9 +227,9 @@ export default function Settings({
         <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider px-1">সাধারণ সেটিংস</h3>
         
         {/* Language Row */}
-        <div className="premium-card p-4 flex items-center justify-between hover:border-emerald-500/10 transition">
+        <div className="premium-card p-4 flex items-center justify-between hover:border-[#7C6FF0]/10 transition">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl">
+            <div className="p-2.5 bg-[#EDE9FE] text-[#7C6FF0] rounded-xl">
               <Globe className="w-4.5 h-4.5" />
             </div>
             <span className="text-sm font-bold text-gray-800">ভাষা</span>
@@ -254,11 +254,11 @@ export default function Settings({
               value={inputUrl}
               onChange={(e) => setInputUrl(e.target.value)}
               placeholder="যেমন: https://meter-pro-api.onrender.com"
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-emerald-700"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-[#7C6FF0]"
             />
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition shadow"
+              className="w-full py-2.5 rounded-xl bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white font-bold text-xs transition shadow"
             >
               সংযোগ ইউআরএল আপডেট করুন
             </button>
@@ -277,12 +277,12 @@ export default function Settings({
                   value={botToken}
                   onChange={(e) => setBotToken(e.target.value)}
                   placeholder="Bot Token"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 text-xs font-mono focus:outline-none focus:border-emerald-700"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 text-xs font-mono focus:outline-none focus:border-[#7C6FF0]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowToken(!showToken)}
-                  className="absolute right-3 top-2.5 text-gray-500 hover:text-emerald-700"
+                  className="absolute right-3 top-2.5 text-gray-500 hover:text-[#7C6FF0]"
                 >
                   {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -295,12 +295,12 @@ export default function Settings({
                 value={chatId}
                 onChange={(e) => setChatId(e.target.value)}
                 placeholder="Chat ID"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-emerald-700"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#7C6FF0]"
               />
             </div>
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition shadow"
+              className="w-full py-2.5 rounded-xl bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white font-bold text-xs transition shadow"
             >
               টেলিগ্রাম কনফিগারেশন আপডেট করুন
             </button>
@@ -319,7 +319,7 @@ export default function Settings({
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="লেবেল (যেমন: বাসা, দোকান)"
-              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-700"
+              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#7C6FF0]"
             />
             <input
               type="text"
@@ -327,11 +327,11 @@ export default function Settings({
               value={newMeterNo}
               onChange={(e) => setNewMeterNo(e.target.value)}
               placeholder="মিটার / কাস্টমার নম্বর"
-              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-700"
+              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#7C6FF0]"
             />
             <button
               type="submit"
-              className="w-full py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition flex items-center justify-center gap-1"
+              className="w-full py-2 rounded-xl bg-[#EDE9FE] text-[#7C6FF0] hover:bg-[#dcd5fc] text-xs font-bold transition flex items-center justify-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" />
               মিটার যোগ করুন
@@ -372,7 +372,7 @@ export default function Settings({
 
         {/* About App Developer */}
         <div className="premium-card p-5 space-y-4">
-          <div className="flex items-center gap-2 text-emerald-700 pb-2 border-b border-gray-100">
+          <div className="flex items-center gap-2 text-[#7C6FF0] pb-2 border-b border-gray-100">
             <Info className="w-5 h-5" />
             <h4 className="font-bold">অ্যাপ তথ্য ও নির্মাতা</h4>
           </div>
@@ -384,12 +384,12 @@ export default function Settings({
             </p>
             <div className="space-y-1.5 pt-2 border-t border-gray-100">
               <div className="flex items-center gap-2">
-                <User className="w-3.5 h-3.5 text-emerald-600" />
+                <User className="w-3.5 h-3.5 text-[#7C6FF0]" />
                 <span>নির্মাতা: <span className="font-bold text-gray-700">Mahbubur Hamim</span></span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-emerald-600" />
-                <span>যোগাযোগ: <a href="mailto:hello@movnex.com" className="text-emerald-700 hover:underline">hello@movnex.com</a></span>
+                <Mail className="w-3.5 h-3.5 text-[#7C6FF0]" />
+                <span>যোগাযোগ: <a href="mailto:hello@movnex.com" className="text-[#7C6FF0] hover:underline">hello@movnex.com</a></span>
               </div>
             </div>
           </div>

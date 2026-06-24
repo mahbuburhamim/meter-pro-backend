@@ -342,12 +342,12 @@ export default function App() {
           {/* Top Logo and Header */}
           <div className="flex items-center justify-between mt-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-950 shadow-md">
-                <Zap className="w-6 h-6 fill-current text-emerald-900" />
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#5B4FCF] shadow-md">
+                <Zap className="w-6 h-6 fill-current text-[#5B4FCF]" />
               </div>
               <div>
                 <h1 className="text-xl font-black text-white leading-none">Meter Pro</h1>
-                <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-wider mt-1">প্রিপেইড মিটার ব্যবস্থাপনা</p>
+                <p className="text-[10px] text-[#EDE9FE] font-bold uppercase tracking-wider mt-1">প্রিপেইড মিটার ব্যবস্থাপনা</p>
               </div>
             </div>
             <button 
@@ -389,8 +389,8 @@ export default function App() {
           {/* Login Form Card */}
           <div className="bg-white text-gray-900 rounded-[32px] p-6 shadow-2xl space-y-5 relative z-10">
             {/* Pill Badge */}
-            <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-3 py-1 rounded-full w-fit">
-              <Zap className="w-3 h-3 fill-current text-emerald-600" />
+            <div className="flex items-center gap-1.5 bg-[#EDE9FE] text-[#5B4FCF] text-[10px] font-bold px-3 py-1 rounded-full w-fit">
+              <Zap className="w-3 h-3 fill-current text-[#7C6FF0]" />
               NESCO প্রিপেইড
             </div>
 
@@ -419,24 +419,24 @@ export default function App() {
                   placeholder="যেমন: 32011435"
                   value={loginMeterNo}
                   onChange={(e) => setLoginMeterNo(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-semibold focus:outline-none focus:border-emerald-700"
+                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-semibold focus:outline-none focus:border-[#7C6FF0]"
                 />
               </div>
 
               <button 
                 type="submit"
                 disabled={isLoggingIn}
-                className="w-full py-4 bg-yellow-100 hover:bg-yellow-200 text-emerald-950 font-black rounded-2xl transition flex items-center justify-center gap-2 text-sm shadow shadow-yellow-100/50"
+                className="w-full py-4 bg-[#EDE9FE] hover:bg-[#dcd5fc] text-[#5B4FCF] font-black rounded-2xl transition flex items-center justify-center gap-2 text-sm shadow shadow-indigo-100/50"
               >
                 {isLoggingIn ? (
                   <>
-                    <Loader className="w-4 h-4 animate-spin text-emerald-900" />
+                    <Loader className="w-4 h-4 animate-spin text-[#5B4FCF]" />
                     লোড হচ্ছে...
                   </>
                 ) : (
                   <>
                     এগিয়ে যান
-                    <ArrowRight className="w-4 h-4 text-emerald-900" />
+                    <ArrowRight className="w-4 h-4 text-[#5B4FCF]" />
                   </>
                 )}
               </button>
@@ -496,7 +496,7 @@ export default function App() {
                     placeholder="যেমন: https://meter-pro-api.onrender.com"
                     value={inputUrl}
                     onChange={(e) => setInputUrl(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-emerald-700"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-[#7C6FF0]"
                   />
                 </div>
                 <div className="flex gap-3 justify-end pt-2">
@@ -509,7 +509,7 @@ export default function App() {
                   </button>
                   <button 
                     type="submit"
-                    className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold transition"
+                    className="px-4 py-2.5 rounded-xl bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white text-xs font-bold transition"
                   >
                     সংরক্ষণ করুন
                   </button>
@@ -546,7 +546,7 @@ export default function App() {
             />
           ) : isLoading ? (
             <div className="flex flex-col items-center justify-center h-96 gap-3">
-              <Loader className="w-8 h-8 text-emerald-600 animate-spin" />
+              <Loader className="w-8 h-8 text-[#7C6FF0] animate-spin" />
               <p className="text-sm text-gray-500 font-medium">লোড হচ্ছে...</p>
             </div>
           ) : error ? (
@@ -609,10 +609,10 @@ export default function App() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex flex-col items-center gap-1 flex-1 transition-colors duration-200 ${
-                isActive ? 'text-emerald-950 font-black' : 'text-gray-500 font-semibold'
+                isActive ? 'text-[#5B4FCF] font-black' : 'text-gray-500 font-semibold'
               }`}
             >
-              <Icon className={`w-5.5 h-5.5 ${isActive ? 'stroke-[2.5px] text-emerald-950' : 'stroke-[1.8px]'}`} />
+              <Icon className={`w-5.5 h-5.5 ${isActive ? 'stroke-[2.5px] text-[#5B4FCF]' : 'stroke-[1.8px]'}`} />
               <span className="text-[10px] tracking-tight">{tab.label}</span>
             </button>
           );

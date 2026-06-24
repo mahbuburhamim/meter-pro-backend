@@ -19,7 +19,7 @@ body {
 
 /* Premium Light Theme acccesories */
 .app-header-bg {
-  background: linear-gradient(180deg, #0b462c 0%, #083320 100%);
+  background: linear-gradient(180deg, #7C6FF0 0%, #5B4FCF 100%);
 }
 
 .premium-card {
@@ -31,21 +31,21 @@ body {
 }
 
 .premium-card-active {
-  border-color: #0b462c;
-  box-shadow: 0 12px 28px -5px rgba(11, 70, 44, 0.08), 0 8px 12px -6px rgba(11, 70, 44, 0.08);
+  border-color: #7C6FF0;
+  box-shadow: 0 12px 28px -5px rgba(124, 111, 240, 0.08), 0 8px 12px -6px rgba(124, 111, 240, 0.08);
 }
 
 .tab-nav-active {
-  color: #0b462c;
+  color: #7C6FF0;
 }
 
 .btn-accent {
-  background-color: #0b462c;
+  background-color: #7C6FF0;
   color: #ffffff;
 }
 
 .btn-accent:hover {
-  background-color: #083320;
+  background-color: #5B4FCF;
 }
 
 /* Toggle Switch Styling */
@@ -88,7 +88,7 @@ body {
 }
 
 input:checked + .slider {
-  background-color: #0b462c;
+  background-color: #7C6FF0;
 }
 
 input:checked + .slider:before {
@@ -111,5 +111,5 @@ input:checked + .slider:before {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #d1fae5;
+  background: #EDE9FE;
 }

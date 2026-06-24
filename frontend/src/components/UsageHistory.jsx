@@ -83,7 +83,7 @@ export default function UsageHistory({
             onClick={() => onRangeChange(r.id)}
             className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-center transition ${
               selectedRange === r.id 
-                ? 'bg-emerald-950 text-white shadow' 
+                ? 'bg-[#5B4FCF] text-white shadow' 
                 : 'text-gray-500 hover:text-gray-800'
             }`}
           >
@@ -128,7 +128,7 @@ export default function UsageHistory({
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    background: 'rgba(11, 70, 44, 0.9)', 
+                    background: 'rgba(91, 79, 207, 0.9)', 
                     borderColor: 'transparent',
                     borderRadius: '12px',
                     color: '#ffffff',
@@ -143,8 +143,8 @@ export default function UsageHistory({
                   {chartData.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={index === chartData.length - 1 ? '#0b462c' : '#a7f3d0'} 
-                      className="hover:fill-emerald-800 transition duration-150 cursor-pointer"
+                      fill={index === chartData.length - 1 ? '#7C6FF0' : '#EDE9FE'} 
+                      className="hover:fill-[#5B4FCF] transition duration-150 cursor-pointer"
                     />
                   ))}
                 </Bar>
@@ -167,11 +167,11 @@ export default function UsageHistory({
             recharges.map((r, index) => (
               <div 
                 key={index} 
-                className="premium-card p-4 flex items-center justify-between hover:border-emerald-500/10 transition"
+                className="premium-card p-4 flex items-center justify-between hover:border-[#7C6FF0]/10 transition"
               >
                 {/* Left check circle + details */}
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#EDE9FE] text-[#7C6FF0] flex items-center justify-center flex-shrink-0">
                     <Check className="w-5 h-5" />
                   </div>
                   <div className="space-y-0.5">
@@ -186,7 +186,7 @@ export default function UsageHistory({
                 </div>
 
                 {/* Right successful status badge */}
-                <span className="px-2.5 py-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full">
+                <span className="px-2.5 py-1 text-[10px] font-bold text-[#7C6FF0] bg-[#EDE9FE] border border-[#7C6FF0]/20 rounded-full">
                   সফল
                 </span>
               </div>

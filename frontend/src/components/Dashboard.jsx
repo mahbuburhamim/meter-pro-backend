@@ -92,9 +92,9 @@ export default function Dashboard({
     <div className="space-y-6">
       {/* Top Welcome Header Block */}
       <div className="app-header-bg text-white -mx-4 -mt-8 px-6 pt-8 pb-20 rounded-b-[40px] flex items-center justify-between shadow-lg relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#7C6FF0]/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="z-10">
-          <p className="text-xs text-emerald-300 font-bold uppercase tracking-wider">স্বাগতম</p>
+          <p className="text-xs text-[#EDE9FE] font-bold uppercase tracking-wider">স্বাগতম</p>
           <h2 className="text-3xl font-black tracking-tight">{customer_name || 'গ্রাহক'}</h2>
         </div>
         <button 
@@ -126,7 +126,7 @@ export default function Dashboard({
             <button 
               onClick={() => onRefresh()}
               disabled={isRefreshing}
-              className={`p-2.5 rounded-full ${status === 'deficit' ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'} transition ${isRefreshing ? 'animate-spin' : ''}`}
+              className={`p-2.5 rounded-full ${status === 'deficit' ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : 'bg-[#EDE9FE] text-[#7C6FF0] hover:bg-[#dcd5fc]'} transition ${isRefreshing ? 'animate-spin' : ''}`}
               title="রিফ্রেশ"
             >
               <RefreshCw className="w-4 h-4" />
@@ -141,8 +141,8 @@ export default function Dashboard({
               <span>৳{Math.abs(latest_balance).toFixed(2)} ঘাটতি — দ্রুত রিচার্জ করুন</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-bold">
-              <Clock className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="flex items-center gap-1.5 bg-[#EDE9FE] text-[#7C6FF0] px-3 py-1.5 rounded-full font-bold">
+              <Clock className="w-3.5 h-3.5 text-[#7C6FF0]" />
               <span>{days_remaining} দিন চলবে</span>
             </div>
           )}
@@ -176,7 +176,7 @@ export default function Dashboard({
           onClick={() => onNavigateTab('usage')}
           className="premium-card p-4 flex flex-col items-center gap-2 text-center hover:scale-[1.02] active:scale-[0.98]"
         >
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+          <div className="p-3 bg-[#EDE9FE] text-[#7C6FF0] rounded-2xl">
             <BarChart3 className="w-5 h-5" />
           </div>
           <span className="text-xs font-bold text-gray-700">বিস্তারিত</span>
@@ -218,7 +218,7 @@ export default function Dashboard({
           <h3 className="font-bold text-gray-900 text-sm">৭ দিনের খরচ</h3>
           <button 
             onClick={() => onNavigateTab('usage')}
-            className="text-xs font-bold text-emerald-700 hover:underline"
+            className="text-xs font-bold text-[#7C6FF0] hover:underline"
           >
             সব দেখুন
           </button>
@@ -237,7 +237,7 @@ export default function Dashboard({
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    background: 'rgba(11, 70, 44, 0.9)', 
+                    background: 'rgba(91, 79, 207, 0.9)', 
                     borderColor: 'transparent',
                     borderRadius: '12px',
                     color: '#ffffff',
@@ -252,8 +252,8 @@ export default function Dashboard({
                   {chartData.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={index === chartData.length - 1 ? '#0b462c' : '#a7f3d0'} 
-                      className="hover:fill-emerald-800 transition-colors duration-200 cursor-pointer"
+                      fill={index === chartData.length - 1 ? '#7C6FF0' : '#EDE9FE'} 
+                      className="hover:fill-[#5B4FCF] transition-colors duration-200 cursor-pointer"
                     />
                   ))}
                 </Bar>
@@ -285,7 +285,7 @@ export default function Dashboard({
                   placeholder="যেমন: 1410.74"
                   value={manualBalance}
                   onChange={(e) => setManualBalance(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-700"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#7C6FF0]"
                 />
               </div>
               <div className="flex gap-3 justify-end pt-2">
@@ -298,7 +298,7 @@ export default function Dashboard({
                 </button>
                 <button 
                   type="submit"
-                  className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold transition"
+                  className="px-4 py-2.5 rounded-xl bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white text-xs font-bold transition"
                 >
                   আপডেট করুন
                 </button>
