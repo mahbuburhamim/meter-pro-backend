@@ -45,7 +45,8 @@ export default function Dashboard({
     last_fetched_at,
     label,
     meter_number,
-    customer_name
+    customer_name,
+    status
   } = meter;
 
   const {
@@ -115,8 +116,8 @@ export default function Dashboard({
 
         <div className="flex items-baseline justify-between">
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-gray-900">৳</span>
-            <span className="text-5xl font-black text-gray-900 tracking-tight">
+            <span className={`text-2xl font-bold ${status === 'deficit' ? 'text-rose-600' : 'text-gray-900'}`}>৳</span>
+            <span className={`text-5xl font-black tracking-tight ${status === 'deficit' ? 'text-rose-600' : 'text-gray-900'}`}>
               {latest_balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -125,7 +126,7 @@ export default function Dashboard({
             <button 
               onClick={() => onRefresh()}
               disabled={isRefreshing}
-              className={`p-2.5 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition ${isRefreshing ? 'animate-spin' : ''}`}
+              className={`p-2.5 rounded-full ${status === 'deficit' ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'} transition ${isRefreshing ? 'animate-spin' : ''}`}
               title="রিফ্রেশ"
             >
               <RefreshCw className="w-4 h-4" />
@@ -134,10 +135,17 @@ export default function Dashboard({
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs">
-          <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-bold">
-            <Clock className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{days_remaining} দিন চলবে</span>
-          </div>
+          {status === 'deficit' ? (
+            <div className="flex items-center gap-1.5 bg-rose-50 text-rose-700 px-3 py-1.5 rounded-full font-bold">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+              <span>৳{Math.abs(latest_balance).toFixed(2)} ঘাটতি — দ্রুত রিচার্জ করুন</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-bold">
+              <Clock className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{days_remaining} দিন চলবে</span>
+            </div>
+          )}
           <span className="text-gray-500 font-medium">
             {formatLastFetched()}
           </span>

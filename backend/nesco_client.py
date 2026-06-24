@@ -74,7 +74,7 @@ class NescoClient:
             balance_str = info_values[-1] if info_values else "0.0"
 
             try:
-                balance = float(re.sub(r'[^\d.]', '', balance_str))
+                balance = float(re.sub(r'[^\d.-]', '', balance_str))
             except ValueError:
                 balance = 0.0
 
@@ -184,8 +184,10 @@ class NescoClient:
         customer_name = "মাহবুবুর রহমান হামিম"
         meter_number = "12345678901" if self.customer_number.upper() in ["TEST", "DEMO"] else self.customer_number
 
+        is_deficit_test = "DEFICIT" in self.customer_number.upper()
+
         # Random current balance between 100 and 1500
-        balance = 687.45
+        balance = -366.74 if is_deficit_test else 687.45
 
         # Recharge history (fake)
         recharge_history = [

@@ -68,7 +68,11 @@ def calculate_meter_metrics(db: Session, meter_id: int, current_balance: float):
 
     # Sensible bounds
     daily_average = max(5.0, min(daily_average, 2000.0))
-    days_remaining = current_balance / daily_average
+    
+    if current_balance < 0:
+        days_remaining = 0.0
+    else:
+        days_remaining = current_balance / daily_average
 
     return round(daily_average, 2), round(days_remaining, 1)
 
@@ -90,16 +94,27 @@ def send_telegram_notification(db: Session, meter: models.Meter, balance: float,
         print("Telegram Bot Token or Chat ID not configured. Skipping alert.")
         return
 
-    message = (
-        f"⚠️ *কম ব্যালেন্স অ্যালার্ট! (NESCO Low Balance)*\n\n"
-        f"মিটার লেবেল: {meter.label}\n"
-        f"মিটার নম্বর: `{meter.meter_number}`\n"
-        f"গ্রাহক: {meter.customer_name or 'N/A'}\n"
-        f"বর্তমান ব্যালেন্স: *৳{balance:.2f}*\n"
-        f"অ্যালার্ট সীমা: ৳{meter.alert_threshold:.2f}\n"
-        f"চলবে (প্রাক্কলিত): *{days_remaining:.1f} দিন*\n\n"
-        f"অনুগ্রহ করে দ্রুত আপনার মিটার রিচার্জ করুন!"
-    )
+    if balance < 0:
+        message = (
+            f"🚨 *জরুরি অ্যালার্ট: ব্যালেন্স ঘাটতি! (NESCO Deficit)*\n\n"
+            f"মিটার লেবেল: {meter.label}\n"
+            f"মিটার নম্বর: `{meter.meter_number}`\n"
+            f"গ্রাহক: {meter.customer_name or 'N/A'}\n"
+            f"বর্তমান ব্যালেন্স: *৳{balance:.2f}* (ঘাটতি)\n"
+            f"চলবে: *০ দিন (জরুরি)*\n\n"
+            f"আপনার মিটারে বকেয়া/ঘাটতি রয়েছে। বিদ্যুৎ সংযোগ সচল রাখতে অনুগ্রহ করে অবিলম্বে রিচার্জ করুন!"
+        )
+    else:
+        message = (
+            f"⚠️ *কম ব্যালেন্স অ্যালার্ট! (NESCO Low Balance)*\n\n"
+            f"মিটার লেবেল: {meter.label}\n"
+            f"মিটার নম্বর: `{meter.meter_number}`\n"
+            f"গ্রাহক: {meter.customer_name or 'N/A'}\n"
+            f"বর্তমান ব্যালেন্স: *৳{balance:.2f}*\n"
+            f"অ্যালার্ট সীমা: ৳{meter.alert_threshold:.2f}\n"
+            f"চলবে (প্রাক্কলিত): *{days_remaining:.1f} দিন*\n\n"
+            f"অনুগ্রহ করে দ্রুত আপনার মিটার রিচার্জ করুন!"
+        )
 
     try:
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
@@ -122,14 +137,17 @@ def check_low_balance_alerts(db: Session, meter: models.Meter, balance: float, d
     """
     Triggers an alert if balance is below threshold and no alert has been sent for this low-balance period.
     """
-    if balance >= meter.alert_threshold:
+    is_deficit = balance < 0
+    effective_threshold = 0.0 if is_deficit else meter.alert_threshold
+
+    if not is_deficit and balance >= meter.alert_threshold:
         return
 
-    # Find the last snapshot where the balance was above the threshold.
+    # Find the last snapshot where the balance was above the effective threshold.
     # An alert is sent once per "drop" below the threshold.
     last_good_snapshot = db.query(models.BalanceSnapshot).filter(
         models.BalanceSnapshot.meter_id == meter.id,
-        models.BalanceSnapshot.balance >= meter.alert_threshold
+        models.BalanceSnapshot.balance >= effective_threshold
     ).order_by(models.BalanceSnapshot.fetched_at.desc()).first()
 
     alert_query = db.query(models.Alert).filter(models.Alert.meter_id == meter.id)
@@ -315,6 +333,15 @@ def shutdown_event():
     print("APScheduler shut down.")
 
 
+def determine_meter_status(balance: float, alert_threshold: float) -> str:
+    if balance < 0:
+        return "deficit"
+    elif balance < alert_threshold:
+        return "low"
+    else:
+        return "normal"
+
+
 # API Endpoints
 
 @app.post("/api/meters", response_model=schemas.MeterResponse)
@@ -353,7 +380,8 @@ def add_meter(meter_data: schemas.MeterCreate, db: Session = Depends(get_db)):
         latest_balance=balance,
         days_remaining=days_remaining,
         is_stale=latest_snap.is_stale if latest_snap else False,
-        last_fetched_at=latest_snap.fetched_at if latest_snap else None
+        last_fetched_at=latest_snap.fetched_at if latest_snap else None,
+        status=determine_meter_status(balance, new_meter.alert_threshold)
     )
 
 @app.get("/api/meters", response_model=List[schemas.MeterResponse])
@@ -377,7 +405,8 @@ def list_meters(db: Session = Depends(get_db)):
             latest_balance=balance,
             days_remaining=days_remaining,
             is_stale=latest_snap.is_stale if latest_snap else False,
-            last_fetched_at=latest_snap.fetched_at if latest_snap else None
+            last_fetched_at=latest_snap.fetched_at if latest_snap else None,
+            status=determine_meter_status(balance, meter.alert_threshold)
         ))
     return results
 
@@ -410,7 +439,8 @@ def update_meter_settings(id: int, data: schemas.MeterUpdate, db: Session = Depe
         latest_balance=balance,
         days_remaining=days_remaining,
         is_stale=latest_snap.is_stale if latest_snap else False,
-        last_fetched_at=latest_snap.fetched_at if latest_snap else None
+        last_fetched_at=latest_snap.fetched_at if latest_snap else None,
+        status=determine_meter_status(balance, meter.alert_threshold)
     )
 
 @app.post("/api/meters/{id}/refresh", response_model=schemas.BalanceSnapshotResponse)

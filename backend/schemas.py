@@ -21,6 +21,7 @@ class MeterResponse(BaseModel):
     days_remaining: Optional[float] = None
     is_stale: Optional[bool] = False
     last_fetched_at: Optional[datetime] = None
+    status: Optional[str] = "normal"
 
     class Config:
         from_attributes = True

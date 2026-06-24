@@ -79,6 +79,28 @@ async def main():
         await page.screenshot(path=settings_path)
         print(f"Settings Tab saved to {settings_path}")
         
+        # 7. Deficit state verification
+        print("Logging out to test deficit state...")
+        await page.evaluate("() => localStorage.clear()")
+        await page.goto("http://127.0.0.1:3000/")
+        await asyncio.sleep(2)
+
+        print("Entering deficit demo meter number...")
+        input_field = page.locator("input[placeholder*='যেমন']")
+        await input_field.fill("TEST-DEFICIT")
+        
+        login_button = page.locator("text=এগিয়ে যান")
+        await login_button.click()
+        
+        print("Waiting for deficit Dashboard to load...")
+        await page.wait_for_selector("text=স্বাগতম", timeout=10000)
+        await asyncio.sleep(3)
+        
+        print("Capturing Deficit Dashboard...")
+        deficit_path = os.path.join(artifact_dir, "dashboard_deficit.png")
+        await page.screenshot(path=deficit_path)
+        print(f"Deficit Dashboard saved to {deficit_path}")
+        
         await browser.close()
         print("Walkthrough completed successfully.")
 
