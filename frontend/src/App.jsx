@@ -15,6 +15,7 @@ import Dashboard from './components/Dashboard';
 import UsageHistory from './components/UsageHistory';
 import AIAdvice from './components/AIAdvice';
 import Settings from './components/Settings';
+import Profile from './components/Profile';
 import Footer from './components/Footer';
 
 const getApiBase = () => {
@@ -589,6 +590,13 @@ export default function App() {
                   onNavigateToSettings={() => setActiveTab('settings')}
                 />
               )}
+
+              {activeTab === 'profile' && (
+                <Profile
+                  meter={activeMeter}
+                  apiBase={API_BASE}
+                />
+              )}
             </>
           )}
         </main>
@@ -600,7 +608,7 @@ export default function App() {
           { id: 'dashboard', label: 'হোম', icon: LayoutDashboard },
           { id: 'usage', label: 'হিসাব', icon: BarChart3 },
           { id: 'insights', label: 'AI পরামর্শ', icon: Sparkles },
-          { id: 'settings', label: 'সেটিংস', icon: User }
+          { id: 'profile', label: 'আপনার তথ্য', icon: User }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

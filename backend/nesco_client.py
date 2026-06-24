@@ -27,6 +27,7 @@ class NescoClient:
                 monthly_consumption: list of dicts
                 current_month_consumption: float
                 last_reading_time: datetime
+                customer_info: dict
         """
         if self.is_demo():
             return self._generate_demo_data()
@@ -60,18 +61,19 @@ class NescoClient:
             # Parse balance and customer info
             parsed_info = self._parse_inputs(recharge_html)
             
-            # The last input is typically the balance input
-            # If parsing fails or length is too short, raise error
             if not parsed_info:
                 raise ValueError("Could not parse customer info or balance. Invalid customer number or page layout changed.")
 
-            # Map the parsed info values
-            info_values = list(parsed_info.values())
+            # Extract details using exact label values for robustness
+            customer_name = parsed_info.get("গ্রাহকের নাম", "Unknown Customer")
+            meter_number = parsed_info.get("মিটার নম্বর", self.customer_number)
             
-            # Extract customer name (usually index 1) and meter number (usually index 8)
-            customer_name = info_values[1] if len(info_values) > 1 else "Unknown Customer"
-            meter_number = info_values[8] if len(info_values) > 8 else self.customer_number
-            balance_str = info_values[-1] if info_values else "0.0"
+            # Find the balance input label, which has variable date stamp text
+            balance_str = "0.0"
+            for k, v in parsed_info.items():
+                if "অবশিষ্ট ব্যালেন্স" in k:
+                    balance_str = v
+                    break
 
             try:
                 balance = float(re.sub(r'[^\d.-]', '', balance_str))
@@ -80,6 +82,30 @@ class NescoClient:
 
             # Parse recharge history table
             recharge_history = self._parse_recharge_table(recharge_html)
+
+            # Map full customer info
+            def get_val(keys):
+                for k in keys:
+                    if k in parsed_info:
+                        return parsed_info[k]
+                return ""
+
+            customer_info = {
+                "customer_name": customer_name,
+                "father_husband_name": get_val(["পিতা/স্বামীর নাম"]),
+                "address": get_val(["ঠিকানা"]),
+                "mobile": get_val(["মোবাইল"]),
+                "electricity_office": get_val(["সংশ্লিষ্ট বিদ্যুৎ অফিস"]),
+                "feeder_name": get_val(["ফিডারের নাম"]),
+                "consumer_number": get_val(["কনজ্যুমার নম্বর"]),
+                "meter_number": meter_number,
+                "approved_load": get_val(["অনুমোদিত লোড (কি.ও)", "অনুমোদিত লোড (কি.ও.)", "অনুমোদিত লোড"]),
+                "approved_tariff": get_val(["অনুমোদিত ট্যারিফ"]),
+                "meter_type": get_val(["মিটারের ধরণ", "মিটারের ধরন"]),
+                "meter_status": get_val(["মিটার স্ট্যাটাস"]),
+                "installation_date": get_val(["মিটার স্থাপনের তারিখ"]),
+                "min_recharge_amount": get_val(["মিনিমাম রিচার্জের পরিমাণ (টাকা)", "মিনিমাম রিচার্জের পরিমাণ"])
+            }
 
             # Step 3: POST to fetch monthly consumption
             consumption_data = {
@@ -96,7 +122,6 @@ class NescoClient:
             # Determine current month consumption
             current_month_consumption = 0.0
             if monthly_consumption:
-                # The first row is usually the latest month
                 try:
                     current_month_consumption = float(monthly_consumption[0].get('usage', 0.0))
                 except ValueError:
@@ -109,7 +134,8 @@ class NescoClient:
                 "recharge_history": recharge_history,
                 "monthly_consumption": monthly_consumption,
                 "current_month_consumption": current_month_consumption,
-                "last_reading_time": datetime.datetime.now()
+                "last_reading_time": datetime.datetime.now(),
+                "customer_info": customer_info
             }
 
         except Exception as e:
@@ -141,12 +167,23 @@ class NescoClient:
 
         for tr in tbody.find_all('tr'):
             cols = [td.text.strip() for td in tr.find_all('td')]
-            if len(cols) >= 14:
-                # ID, Token, Power, Amount, Via, Date, Status
+            if len(cols) >= 15:
+                # 15 Columns: S/N, Seq, Token, Rent, Demand, PFC, Vat, Arrears, Rebate, Energy, Amount, Power(kWh), Via, Date, Status
+                rows.append({
+                    "id": cols[0],
+                    "token": cols[2],
+                    "power": cols[11],
+                    "amount": cols[10],
+                    "via": cols[12],
+                    "date": cols[13],
+                    "status": cols[14]
+                })
+            elif len(cols) == 14:
+                # 14 Columns fallback (if Seq No is missing)
                 rows.append({
                     "id": cols[0],
                     "token": cols[1],
-                    "power": cols[8],
+                    "power": cols[10],
                     "amount": cols[9],
                     "via": cols[11],
                     "date": cols[12],
@@ -180,20 +217,17 @@ class NescoClient:
 
     def _generate_demo_data(self):
         """Generates realistic demo data for testing."""
-        # Demo meter info
         customer_name = "মাহবুবুর রহমান হামিম"
         meter_number = "12345678901" if self.customer_number.upper() in ["TEST", "DEMO"] else self.customer_number
 
         is_deficit_test = "DEFICIT" in self.customer_number.upper()
-
-        # Random current balance between 100 and 1500
         balance = -366.74 if is_deficit_test else 687.45
 
         # Recharge history (fake)
         recharge_history = [
             {
                 "id": "1",
-                "token": "1002-3987-1234-9081-5463",
+                "token": "0357 4370 2335 9968 9910",
                 "power": "210.5",
                 "amount": "1000",
                 "via": "bKash",
@@ -202,7 +236,7 @@ class NescoClient:
             },
             {
                 "id": "2",
-                "token": "4982-1209-7734-9122-3841",
+                "token": "4982 1209 7734 9122 3841",
                 "power": "105.2",
                 "amount": "500",
                 "via": "Nagad",
@@ -225,6 +259,24 @@ class NescoClient:
 
         current_month_consumption = float(monthly_consumption[0]["usage"])
 
+        # Customer Info (fake)
+        customer_info = {
+            "customer_name": customer_name,
+            "father_husband_name": "মোঃ আনোয়ার হোসেন",
+            "address": "পূর্ব খাসবাগ, রংপুর",
+            "mobile": "+880 171*****27",
+            "electricity_office": "রংপুর S&D-3",
+            "feeder_name": "কলেজ ফিডার রংপুর ৩",
+            "consumer_number": "13005063" if self.customer_number.upper() in ["TEST", "DEMO"] else self.customer_number,
+            "meter_number": "31011060216" if self.customer_number.upper() in ["TEST", "DEMO"] else self.customer_number,
+            "approved_load": "3",
+            "approved_tariff": "LT-A",
+            "meter_type": "Single-Phase Meter",
+            "meter_status": "Active",
+            "installation_date": "16-Jan-2025 5:07 PM",
+            "min_recharge_amount": "53.00"
+        }
+
         return {
             "balance": balance,
             "customer_name": customer_name,
@@ -232,5 +284,6 @@ class NescoClient:
             "recharge_history": recharge_history,
             "monthly_consumption": monthly_consumption,
             "current_month_consumption": current_month_consumption,
-            "last_reading_time": datetime.datetime.now()
+            "last_reading_time": datetime.datetime.now(),
+            "customer_info": customer_info
         }

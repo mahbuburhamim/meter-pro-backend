@@ -484,6 +484,19 @@ def delete_meter(id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Meter deleted successfully"}
 
+@app.get("/api/meters/{id}/customer-info")
+def get_meter_customer_info(id: int, db: Session = Depends(get_db)):
+    meter = db.query(models.Meter).filter(models.Meter.id == id).first()
+    if not meter:
+        raise HTTPException(status_code=404, detail="Meter not found")
+
+    client = NescoClient(meter.meter_number)
+    try:
+        data = client.fetch_all()
+        return data.get("customer_info", {})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/meters/{id}/history")
 def get_meter_history(id: int, range_str: str = Query("7d", alias="range", pattern="^(7d|30d|1y)$"), db: Session = Depends(get_db)):
     meter = db.query(models.Meter).filter(models.Meter.id == id).first()
