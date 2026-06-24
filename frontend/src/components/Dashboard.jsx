@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Clipboard } from '@capacitor/clipboard';
+import { AppLauncher } from '@capacitor/app-launcher';
 import { 
   Settings as SettingsIcon, 
   Wallet, 
@@ -48,6 +50,46 @@ export default function Dashboard({
     customer_name,
     status
   } = meter;
+
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const handleRechargeClick = async () => {
+    if (!meter_number) return;
+    try {
+      await Clipboard.write({
+        string: meter_number
+      });
+    } catch (err) {
+      try {
+        await navigator.clipboard.writeText(meter_number);
+      } catch (e) {
+        console.error("Failed to copy meter number", e);
+      }
+    }
+
+    setToastMessage("মিটার নাম্বার কপি হয়েছে — bKash-এ Pay Bill > Electricity > NESCO সিলেক্ট করে পেস্ট করুন।");
+    
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+
+    setTimeout(async () => {
+      const packageIdentifier = 'com.bKash.customerapp';
+      try {
+        const { value } = await AppLauncher.canOpenUrl({ url: packageIdentifier });
+        if (value) {
+          await AppLauncher.openUrl({ url: packageIdentifier });
+        } else {
+          await AppLauncher.openUrl({ 
+            url: `https://play.google.com/store/apps/details?id=${packageIdentifier}` 
+          });
+        }
+      } catch (err) {
+        console.error("Failed to launch app/store", err);
+        window.open(`https://play.google.com/store/apps/details?id=${packageIdentifier}`, '_blank');
+      }
+    }, 1500);
+  };
 
   const {
     history = [],
@@ -163,7 +205,7 @@ export default function Dashboard({
       {/* Row of Three Action Buttons */}
       <div className="grid grid-cols-3 gap-3 px-2">
         <button 
-          onClick={() => setShowManualModal(true)}
+          onClick={handleRechargeClick}
           className="premium-card p-4 flex flex-col items-center gap-2 text-center hover:scale-[1.02] active:scale-[0.98]"
         >
           <div className="p-3 bg-amber-50 text-amber-500 rounded-2xl">
@@ -305,6 +347,13 @@ export default function Dashboard({
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {toastMessage && (
+        <div className="fixed inset-x-4 bottom-24 bg-gray-900/95 text-white p-4 rounded-2xl text-xs font-bold z-50 shadow-xl border border-gray-800 animate-in fade-in slide-in-from-bottom-4 duration-200 flex flex-col items-center text-center gap-1">
+          <span className="text-[#EDE9FE] text-[10px] font-black uppercase tracking-wider">নির্দেশনা</span>
+          <span>{toastMessage}</span>
         </div>
       )}
     </div>
