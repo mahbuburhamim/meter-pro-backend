@@ -29,7 +29,7 @@ const getApiBase = () => {
   // Detect if running inside Capacitor
   const isCapacitor = window.hasOwnProperty('Capacitor') || (window.location.origin.startsWith('http://localhost') && !window.location.port);
   if (isCapacitor) {
-    return 'http://10.0.2.2:8000/api';
+    return 'https://meter-pro-api.onrender.com/api';
   }
   return '/api';
 };
@@ -552,13 +552,21 @@ export default function App() {
             </div>
           ) : error ? (
             <div className="text-center py-12 premium-card max-w-md mx-auto p-8 border-rose-500/20">
-              <p className="text-rose-500 font-medium mb-4">{error}</p>
-              <button 
-                onClick={fetchMeters} 
-                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl text-sm transition font-bold"
-              >
-                আবার চেষ্টা করুন
-              </button>
+              <p className="text-rose-500 font-medium mb-5">{error}</p>
+              <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                <button 
+                  onClick={fetchMeters} 
+                  className="w-full py-3 bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white rounded-xl text-xs font-bold transition shadow-md active:scale-95"
+                >
+                  আবার চেষ্টা করুন
+                </button>
+                <button 
+                  onClick={() => setActiveTab('settings')}
+                  className="w-full py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold transition active:scale-95"
+                >
+                  সার্ভার সংযোগ পরিবর্তন করুন
+                </button>
+              </div>
             </div>
           ) : (
             <>
