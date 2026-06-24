@@ -85,7 +85,34 @@ export default function UsageHistory({
   const highestSpendItem = history.find(h => h.usage === highest_daily_spend);
   const highestSpendDate = highestSpendItem ? highestSpendItem.date : '';
 
+  const toBanglaDigits = (num) => {
+    if (!num) return '';
+    const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return num.toString().split('').map(char => {
+      const digit = parseInt(char);
+      return isNaN(digit) ? char : banglaDigits[digit];
+    }).join('');
+  };
+
   const translateMonth = (engMonth) => {
+    const monthsMap = {
+      'January': 'জানু', 'Jan': 'জানু',
+      'February': 'ফেব্রু', 'Feb': 'ফেব্রু',
+      'March': 'মার্চ', 'Mar': 'মার্চ',
+      'April': 'এপ্রি', 'Apr': 'এপ্রি',
+      'May': 'মে',
+      'June': 'জুন', 'Jun': 'জুন',
+      'July': 'জুলা', 'Jul': 'জুলা',
+      'August': 'আগ', 'Aug': 'আগ',
+      'September': 'সেপ্টে', 'Sep': 'সেপ্টে',
+      'October': 'অক্টো', 'Oct': 'অক্টো',
+      'November': 'নভে', 'Nov': 'নভে',
+      'December': 'ডিসে', 'Dec': 'ডিসে'
+    };
+    return monthsMap[engMonth] || engMonth;
+  };
+
+  const translateFullMonth = (engMonth) => {
     const monthsMap = {
       'January': 'জানুয়ারি', 'Jan': 'জানুয়ারি',
       'February': 'ফেব্রুয়ারি', 'Feb': 'ফেব্রুয়ারি',
@@ -122,7 +149,7 @@ export default function UsageHistory({
       const u = parseFloat(item.usage.toString().replace(/,/g, '')) || 0;
       if (u > maxMonthUsage) {
         maxMonthUsage = u;
-        maxMonthName = `${translateMonth(item.month)} ${item.year}`;
+        maxMonthName = `${translateFullMonth(item.month)} ${toBanglaDigits(item.year)}`;
       }
     });
     highestSpendTitle = "সর্বোচ্চ মাস";
@@ -137,7 +164,7 @@ export default function UsageHistory({
         return {
           name: translateMonth(item.month),
           usage: usageVal,
-          rawDate: `${item.month} ${item.year}`
+          rawDate: `${translateFullMonth(item.month)} ${toBanglaDigits(item.year)}`
         };
       })
     : history.map(item => {
@@ -158,6 +185,31 @@ export default function UsageHistory({
           rawDate: item.date
         };
       });
+
+  const maxUsageVal = Math.max(...chartData.map(d => d.usage), 0);
+
+  const getCellFill = (entry, index) => {
+    if (selectedRange === '1y') {
+      return entry.usage === maxUsageVal && maxUsageVal > 0 ? '#FF6B5B' : '#7C6FF0';
+    }
+    return index === chartData.length - 1 ? '#7C6FF0' : '#EDE9FE';
+  };
+
+  const renderCustomBarLabel = ({ x, y, width, value }) => {
+    if (selectedRange !== '1y') return null;
+    return (
+      <text 
+        x={x + width / 2} 
+        y={y - 6} 
+        fill="#4b5563" 
+        fontSize={8} 
+        fontWeight="bold" 
+        textAnchor="middle"
+      >
+        {value ? Math.round(value) : ''}
+      </text>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -250,11 +302,16 @@ export default function UsageHistory({
                   formatter={(value, name, props) => [`৳${value}`, `তারিখ: ${props.payload.rawDate}`]}
                   labelFormatter={() => ''}
                 />
-                <Bar dataKey="usage" radius={[4, 4, 0, 0]} maxBarSize={30}>
+                <Bar 
+                  dataKey="usage" 
+                  radius={[4, 4, 0, 0]} 
+                  maxBarSize={30}
+                  label={renderCustomBarLabel}
+                >
                   {chartData.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={index === chartData.length - 1 ? '#7C6FF0' : '#EDE9FE'} 
+                      fill={getCellFill(entry, index)} 
                       className="hover:fill-[#5B4FCF] transition duration-150 cursor-pointer"
                     />
                   ))}
