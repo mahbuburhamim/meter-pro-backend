@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clipboard } from '@capacitor/clipboard';
 import { 
   Check, 
@@ -19,9 +19,33 @@ export default function UsageHistory({
   historyData, 
   selectedRange, 
   onRangeChange,
-  onNavigateToSettings
+  onNavigateToSettings,
+  apiBase
 }) {
   const [toastMessage, setToastMessage] = useState(null);
+  const [monthlyUsage, setMonthlyUsage] = useState([]);
+  const [isMonthlyLoading, setIsMonthlyLoading] = useState(false);
+
+  useEffect(() => {
+    if (selectedRange === '1y' && meter && apiBase) {
+      fetchMonthlyUsage();
+    }
+  }, [selectedRange, meter, apiBase]);
+
+  const fetchMonthlyUsage = async () => {
+    setIsMonthlyLoading(true);
+    try {
+      const res = await fetch(`${apiBase}/meters/${meter.id}/monthly-usage`);
+      if (res.ok) {
+        const data = await res.json();
+        setMonthlyUsage(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch monthly usage", err);
+    } finally {
+      setIsMonthlyLoading(false);
+    }
+  };
 
   const handleCopyToken = async (token) => {
     if (!token) return;
@@ -61,27 +85,79 @@ export default function UsageHistory({
   const highestSpendItem = history.find(h => h.usage === highest_daily_spend);
   const highestSpendDate = highestSpendItem ? highestSpendItem.date : '';
 
-  // Format chart data based on date
-  const chartData = history.map(item => {
-    const dateObj = new Date(item.date);
-    const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    const formattedDay = dayNames[dateObj.getDay()];
-    
-    let label = '';
-    if (selectedRange === '7d') {
-      label = formattedDay;
-    } else if (selectedRange === '30d') {
-      label = dateObj.getDate().toString();
-    } else {
-      label = dateObj.toLocaleDateString('bn-BD', { month: 'short' });
-    }
-
-    return {
-      name: label,
-      usage: item.usage,
-      rawDate: item.date
+  const translateMonth = (engMonth) => {
+    const monthsMap = {
+      'January': 'জানুয়ারি', 'Jan': 'জানুয়ারি',
+      'February': 'ফেব্রুয়ারি', 'Feb': 'ফেব্রুয়ারি',
+      'March': 'মার্চ', 'Mar': 'মার্চ',
+      'April': 'এপ্রিল', 'Apr': 'এপ্রিল',
+      'May': 'মে',
+      'June': 'জুন', 'Jun': 'জুন',
+      'July': 'জুলাই', 'Jul': 'জুলাই',
+      'August': 'আগস্ট', 'Aug': 'আগস্ট',
+      'September': 'সেপ্টেম্বর', 'Sep': 'সেপ্টেম্বর',
+      'October': 'অক্টোবর', 'Oct': 'অক্টোবর',
+      'November': 'নভেম্বর', 'Nov': 'নভেম্বর',
+      'December': 'ডিসেম্বর', 'Dec': 'ডিসেম্বর'
     };
-  });
+    return monthsMap[engMonth] || engMonth;
+  };
+
+  let displayTotalSpend = total_spend;
+  let displayDailyAverage = daily_average;
+  let displayHighestSpend = highest_daily_spend;
+  let displayHighestSpendDate = highestSpendDate;
+  let highestSpendTitle = "সর্বোচ্চ দিন";
+
+  if (selectedRange === '1y') {
+    const totalUsage = monthlyUsage.reduce((acc, item) => acc + (parseFloat(item.usage.toString().replace(/,/g, '')) || 0), 0);
+    displayTotalSpend = totalUsage;
+    
+    const totalMonths = monthlyUsage.length;
+    displayDailyAverage = totalMonths > 0 ? (totalUsage / (totalMonths * 30.4)) : 0;
+    
+    let maxMonthUsage = 0;
+    let maxMonthName = '';
+    monthlyUsage.forEach(item => {
+      const u = parseFloat(item.usage.toString().replace(/,/g, '')) || 0;
+      if (u > maxMonthUsage) {
+        maxMonthUsage = u;
+        maxMonthName = `${translateMonth(item.month)} ${item.year}`;
+      }
+    });
+    highestSpendTitle = "সর্বোচ্চ মাস";
+    displayHighestSpend = maxMonthUsage;
+    displayHighestSpendDate = maxMonthName;
+  }
+
+  // Format chart data based on date
+  const chartData = selectedRange === '1y' 
+    ? [...monthlyUsage].reverse().map(item => {
+        const usageVal = parseFloat(item.usage.toString().replace(/,/g, '')) || 0;
+        return {
+          name: translateMonth(item.month),
+          usage: usageVal,
+          rawDate: `${item.month} ${item.year}`
+        };
+      })
+    : history.map(item => {
+        const dateObj = new Date(item.date);
+        const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+        const formattedDay = dayNames[dateObj.getDay()];
+        
+        let label = '';
+        if (selectedRange === '7d') {
+          label = formattedDay;
+        } else if (selectedRange === '30d') {
+          label = dateObj.getDate().toString();
+        }
+
+        return {
+          name: label,
+          usage: item.usage,
+          rawDate: item.date
+        };
+      });
 
   return (
     <div className="space-y-6">
@@ -124,17 +200,17 @@ export default function UsageHistory({
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="space-y-1 border-r border-gray-100">
             <p className="text-[10px] font-bold text-gray-500 uppercase">মোট খরচ</p>
-            <p className="text-sm font-black text-gray-900">৳ {total_spend?.toFixed(0)}</p>
+            <p className="text-sm font-black text-gray-900">৳ {displayTotalSpend?.toFixed(0)}</p>
           </div>
           <div className="space-y-1 border-r border-gray-100">
             <p className="text-[10px] font-bold text-gray-500 uppercase">দৈনিক গড়</p>
-            <p className="text-sm font-black text-gray-900">৳ {daily_average?.toFixed(0)}</p>
+            <p className="text-sm font-black text-gray-900">৳ {displayDailyAverage?.toFixed(0)}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-[10px] font-bold text-gray-500 uppercase">সর্বোচ্চ দিন</p>
-            <p className="text-sm font-black text-rose-500">৳ {highest_daily_spend?.toFixed(0)}</p>
-            {highestSpendDate && (
-              <p className="text-[8px] text-gray-500 font-medium">{highestSpendDate}</p>
+            <p className="text-[10px] font-bold text-gray-500 uppercase">{highestSpendTitle}</p>
+            <p className="text-sm font-black text-rose-500">৳ {displayHighestSpend?.toFixed(0)}</p>
+            {displayHighestSpendDate && (
+              <p className="text-[8px] text-gray-500 font-medium">{displayHighestSpendDate}</p>
             )}
           </div>
         </div>
@@ -142,8 +218,16 @@ export default function UsageHistory({
 
       {/* Chart Card */}
       <div className="premium-card p-5 space-y-4 shadow-sm">
-        <div className="h-56 w-full">
-          {chartData.length > 0 ? (
+        <div className="h-56 w-full flex items-center justify-center">
+          {isMonthlyLoading ? (
+            <div className="flex flex-col items-center gap-2">
+              <svg className="animate-spin h-6 w-6 text-[#7C6FF0]" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="text-xs text-gray-500 font-medium">লোড হচ্ছে...</span>
+            </div>
+          ) : chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <XAxis 

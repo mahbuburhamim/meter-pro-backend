@@ -584,6 +584,7 @@ export default function App() {
                   selectedRange={selectedRange}
                   onRangeChange={setSelectedRange}
                   onNavigateToSettings={() => setActiveTab('settings')}
+                  apiBase={API_BASE}
                 />
               )}
 
