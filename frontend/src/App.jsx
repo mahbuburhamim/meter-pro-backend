@@ -26,12 +26,8 @@ const getApiBase = () => {
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '') + '/api';
   }
-  // Detect if running inside Capacitor
-  const isCapacitor = window.hasOwnProperty('Capacitor') || (window.location.origin.startsWith('http://localhost') && !window.location.port);
-  if (isCapacitor) {
-    return 'https://meter-pro-api.onrender.com/api';
-  }
-  return '/api';
+  // Default fallback is production Render API (prevents local/emulator address lockouts)
+  return 'https://meter-pro-api.onrender.com/api';
 };
 
 const API_BASE = getApiBase();
