@@ -251,8 +251,17 @@ class NescoClient:
 
         for tr in tbody.find_all('tr'):
             cols = [td.text.strip() for td in tr.find_all('td')]
-            if len(cols) >= 5:
-                # Year, Month, Recharge, Discount, Usage
+            if len(cols) >= 13:
+                # Year, Month, Recharge, Discount, Usage (Index 12 is Used Electricity KWH!)
+                rows.append({
+                    "year": cols[0],
+                    "month": cols[1],
+                    "recharge": cols[2],
+                    "discount": cols[3],
+                    "usage": cols[12]
+                })
+            elif len(cols) >= 5:
+                # Fallback if structure changes
                 rows.append({
                     "year": cols[0],
                     "month": cols[1],

@@ -25,22 +25,28 @@ export default function AIAdvice({
     estimated_bill = 0
   } = historyData || {};
 
+  const isDeficit = latest_balance < 0;
+  const deficitAmount = Math.abs(latest_balance);
+
   // Calculate today's usage
   const todayStr = new Date().toISOString().split('T')[0];
   const todayHistory = history.find(h => h.date === todayStr);
   const todaySpend = todayHistory ? todayHistory.usage : (history.length > 0 ? history[history.length - 1].usage : 0.0);
 
-  // Suggested Recharge: daily average * 30, rounded to nearest 50
-  const suggestedRecharge = Math.ceil((daily_average * 30) / 50) * 50;
+  // Suggested Recharge: if deficit, add deficit amount to the 30-day spend, then round to nearest 50
+  const baseRecharge = daily_average * 30;
+  const suggestedRecharge = Math.ceil((baseRecharge + (isDeficit ? deficitAmount : 0)) / 50) * 50;
 
   // Analysis text rules
   const spendComparison = todaySpend > daily_average 
     ? `আজকের খরচ ৳${todaySpend.toFixed(0)} – গড়ের চেয়ে বেশি` 
     : `আজকের খরচ ৳${todaySpend.toFixed(0)} – গড়ের চেয়ে কম`;
   
-  const rechargeWarning = days_remaining <= 3
-    ? `আপনার মিটারে আর মাত্র ${days_remaining} দিনের ব্যালেন্স আছে। অবিলম্বে রিচার্জ করুন!`
-    : `ব্যালেন্স ফুরানোর আগে ${Math.max(1, Math.floor(days_remaining - 1))} দিনের মধ্যে রিচার্জ করুন`;
+  const rechargeWarning = isDeficit
+    ? `আপনার মিটারে বর্তমানে ৳${deficitAmount.toFixed(0)} ঘাটতি রয়েছে। বিদ্যুৎ সচল রাখতে অবিলম্বে রিচার্জ করুন!`
+    : (days_remaining <= 3
+      ? `আপনার মিটারে আর মাত্র ${days_remaining} দিনের ব্যালেন্স আছে। অবিলম্বে রিচার্জ করুন!`
+      : `ব্যালেন্স ফুরানোর আগে ${Math.max(1, Math.floor(days_remaining - 1))} দিনের মধ্যে রিচার্জ করুন`);
 
   return (
     <div className="space-y-6">
@@ -71,8 +77,12 @@ export default function AIAdvice({
             <Sparkles className="w-5 h-5 fill-current" />
           </div>
           <div>
-            <p className="text-xs text-[#EDE9FE] font-medium tracking-wide">আপনার গড় ব্যবহারের ভিত্তিতে</p>
-            <h3 className="text-4xl font-black mt-1 tracking-tight">{days_remaining} দিন চলবে</h3>
+            <p className="text-xs text-[#EDE9FE] font-medium tracking-wide">
+              {isDeficit ? "জরুরি রিচার্জ প্রয়োজন" : "আপনার গড় ব্যবহারের ভিত্তিতে"}
+            </p>
+            <h3 className="text-4xl font-black mt-1 tracking-tight">
+              {isDeficit ? `৳${deficitAmount.toFixed(0)} ঘাটতি` : `${days_remaining} দিন চলবে`}
+            </h3>
           </div>
         </div>
       </div>
@@ -82,7 +92,9 @@ export default function AIAdvice({
         <div className="space-y-1">
           <p className="text-xs text-gray-600 font-semibold uppercase tracking-wider">প্রস্তাবিত রিচার্জ</p>
           <p className="text-3xl font-extrabold text-gray-900">৳ {suggestedRecharge.toLocaleString('bn-BD')}</p>
-          <p className="text-xs text-gray-500">৩০ দিনের জন্য যথেষ্ট</p>
+          <p className="text-xs text-gray-500">
+            {isDeficit ? `৳${deficitAmount.toFixed(0)} বকেয়া পরিশোধ সহ ৩০ দিনের জন্য যথেষ্ট` : "৩০ দিনের জন্য যথেষ্ট"}
+          </p>
         </div>
         <div className="p-4 bg-[#EDE9FE] text-[#7C6FF0] rounded-2xl">
           <Receipt className="w-6 h-6" />

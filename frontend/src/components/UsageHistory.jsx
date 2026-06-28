@@ -347,7 +347,7 @@ export default function UsageHistory({
                       {item.month}-{item.year}
                     </h4>
                     <p className="text-xs text-gray-400 font-bold">
-                      Used: {item.usage} KWH
+                      Used: {item.usage} UNIT
                     </p>
                   </div>
                 </div>
