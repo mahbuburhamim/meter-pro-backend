@@ -261,19 +261,25 @@ scheduler = BackgroundScheduler()
 def startup_event():
     # Dynamic database migration: add due_notice column if it doesn't exist
     from sqlalchemy import text
-    db = next(get_db())
+    migration_db = SessionLocal()
     try:
-        db.execute(text("SELECT due_notice FROM meters LIMIT 1"))
+        migration_db.execute(text("SELECT due_notice FROM meters LIMIT 1"))
     except Exception:
+        # Rollback the failed SELECT query transaction status (required in PostgreSQL)
+        migration_db.rollback()
         print("Column due_notice not found in meters table. Running ALTER TABLE to add it...")
         try:
-            db.execute(text("ALTER TABLE meters ADD COLUMN due_notice VARCHAR"))
-            db.commit()
+            migration_db.execute(text("ALTER TABLE meters ADD COLUMN due_notice VARCHAR"))
+            migration_db.commit()
             print("Successfully added due_notice column to meters table.")
         except Exception as err:
             print(f"Error applying migration: {err}")
-            db.rollback()
+            migration_db.rollback()
+    finally:
+        migration_db.close()
 
+    # Clear seeding session
+    db = next(get_db())
     try:
         # Check if settings exist, if not create empty settings
         settings = db.query(models.AppSettings).first()
