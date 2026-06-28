@@ -146,6 +146,35 @@ class NescoClient:
         except Exception as e:
             raise RuntimeError(f"NESCO fetch failed: {str(e)}")
 
+    def _clean_due_notice_text(self, text):
+        start_idx = text.find("বকেয়া নোটিশ")
+        if start_idx == -1:
+            start_idx = text.find("সম্মানিত গ্রাহক")
+        if start_idx == -1:
+            return None
+
+        notice_part = text[start_idx:]
+        end_words = ["ওয়েবসাইট", "ওয়েবসাইট", "website", "সমন্বয় করা হবে।", "বিচ্ছিন্ন করা হবে"]
+        end_idx = -1
+        for word in end_words:
+            pos = notice_part.find(word)
+            if pos != -1:
+                end_idx = max(end_idx, pos + len(word) + 15)
+        
+        if end_idx != -1:
+            notice_part = notice_part[:end_idx]
+
+        lines = [line.strip() for line in notice_part.split("\n") if line.strip()]
+        valid_keywords = ["বকেয়া", "গ্রাহক", "মিটার", "টাকা", "পরিশোধ", "সংযোগ", "বিচ্ছিন্ন", "সমন্বয়", "ভিজিট", "postpaid", "nesco"]
+        clean_lines = []
+        for line in lines:
+            if any(kw in line.lower() for kw in valid_keywords):
+                clean_lines.append(line)
+        
+        if len(clean_lines) >= 2:
+            return "\n".join(clean_lines)
+        return None
+
     def _parse_due_notice(self, html):
         try:
             soup = BeautifulSoup(html, 'html.parser')
@@ -153,16 +182,9 @@ class NescoClient:
             for tag in soup.find_all(['div', 'table', 'td', 'p', 'span']):
                 text = tag.get_text(separator="\n").strip()
                 if "বকেয়া নোটিশ" in text and ("সম্মানিত গ্রাহক" in text or "বকেয়া বিল" in text):
-                    lines = [line.strip() for line in text.split("\n") if line.strip()]
-                    # Deduplicate preserving order
-                    seen = set()
-                    clean_lines = []
-                    for l in lines:
-                        if l not in seen:
-                            seen.add(l)
-                            clean_lines.append(l)
-                    if len(clean_lines) >= 2:
-                        return "\n".join(clean_lines)
+                    cleaned = self._clean_due_notice_text(text)
+                    if cleaned:
+                        return cleaned
                         
             # 2. Fallback: search for "সম্মানিত গ্রাহক" and "বকেয়া" in any container
             for tag in soup.find_all(['div', 'table', 'td']):
@@ -176,14 +198,9 @@ class NescoClient:
                             has_child_match = True
                             break
                     if not has_child_match:
-                        lines = [line.strip() for line in text.split("\n") if line.strip()]
-                        seen = set()
-                        clean_lines = []
-                        for l in lines:
-                            if l not in seen:
-                                seen.add(l)
-                                clean_lines.append(l)
-                        return "\n".join(clean_lines)
+                        cleaned = self._clean_due_notice_text(text)
+                        if cleaned:
+                            return cleaned
         except Exception as e:
             print(f"Error parsing due notice: {e}")
         return None
