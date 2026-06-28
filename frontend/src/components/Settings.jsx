@@ -8,9 +8,9 @@ import {
   Info,
   Mail,
   User,
-  Eye,
-  EyeOff,
-  LogOut
+  LogOut,
+  Send,
+  Loader
 } from 'lucide-react';
 
 export default function Settings({ 
@@ -37,13 +37,44 @@ export default function Settings({
   const [pushEnabled, setPushEnabled] = useState(true);
   const [repeatEnabled, setRepeatEnabled] = useState(true);
 
-  // Telegram inputs
-  const [botToken, setBotToken] = useState('');
-  const [chatId, setChatId] = useState('');
-  const [showToken, setShowToken] = useState(false);
-
   // Connection URL inputs
   const [inputUrl, setInputUrl] = useState(backendUrl || '');
+
+  // Telegram bot state
+  const [botInfo, setBotInfo] = useState({
+    is_configured: false,
+    bot_username: null,
+    is_linked: false,
+    chat_id: null
+  });
+  const [isLoadingBotInfo, setIsLoadingBotInfo] = useState(true);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const [versionTaps, setVersionTaps] = useState(0);
+  const [showDevMenu, setShowDevMenu] = useState(false);
+
+  const getBaseUrl = () => {
+    if (backendUrl) return backendUrl;
+    if (import.meta.env.VITE_API_BASE_URL) {
+      return import.meta.env.VITE_API_BASE_URL.replace(/\/api$/, '');
+    }
+    return 'https://meter-pro-api.onrender.com';
+  };
+  const actualBackendUrl = getBaseUrl();
+
+  const fetchBotInfo = async () => {
+    try {
+      const res = await fetch(`${actualBackendUrl.replace(/\/$/, '')}/api/telegram/bot-info`);
+      if (res.ok) {
+        const data = await res.json();
+        setBotInfo(data);
+      }
+    } catch (err) {
+      console.error("Error fetching bot info:", err);
+    } finally {
+      setIsLoadingBotInfo(false);
+    }
+  };
 
   useEffect(() => {
     if (meters && meters.length > 0 && !selectedMeterId) {
@@ -53,11 +84,38 @@ export default function Settings({
   }, [meters, selectedMeterId]);
 
   useEffect(() => {
-    if (telegramSettings) {
-      setBotToken(telegramSettings.telegram_bot_token || '');
-      setChatId(telegramSettings.telegram_chat_id || '');
+    fetchBotInfo();
+  }, [backendUrl]);
+
+  // Polling logic when isPolling becomes true
+  useEffect(() => {
+    let intervalId;
+    if (isPolling) {
+      let count = 0;
+      intervalId = setInterval(async () => {
+        try {
+          const res = await fetch(`${actualBackendUrl.replace(/\/$/, '')}/api/telegram/bot-info`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.is_linked) {
+              setBotInfo(data);
+              setIsPolling(false);
+              alert("✅ Telegram সফলভাবে যুক্ত হয়েছে!");
+            }
+          }
+        } catch (err) {
+          console.error("Polling error:", err);
+        }
+        count++;
+        if (count >= 40) { // Stop polling after 2 mins
+          setIsPolling(false);
+        }
+      }, 3000);
     }
-  }, [telegramSettings]);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isPolling, backendUrl]);
 
   const handleMeterChangeForThreshold = (id) => {
     setSelectedMeterId(id);
@@ -103,13 +161,50 @@ export default function Settings({
     setNewThreshold(200);
   };
 
-  const handleTelegramSubmit = (e) => {
-    e.preventDefault();
-    onUpdateTelegramSettings({
-      telegram_bot_token: botToken,
-      telegram_chat_id: chatId
-    });
+  const handleConnectTelegram = () => {
+    if (!botInfo.bot_username) return;
+    const activeMeter = meters.find(m => m.id.toString() === selectedMeterId.toString()) || meters[0];
+    const meterParam = activeMeter ? activeMeter.meter_number : 'default';
+    const deepLink = `https://t.me/${botInfo.bot_username}?start=${meterParam}`;
+    
+    if (window.hasOwnProperty('Capacitor') || window.Capacitor) {
+      window.open(deepLink, '_system');
+    } else {
+      window.open(deepLink, '_blank');
+    }
+    setIsPolling(true);
   };
+
+  const handleDisconnectTelegram = async () => {
+    if (!confirm("আপনি কি নিশ্চিত সংযোগ বিচ্ছিন্ন করতে চান?")) return;
+    setIsActionLoading(true);
+    try {
+      const res = await fetch(`${actualBackendUrl.replace(/\/$/, '')}/api/telegram/disconnect`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        await fetchBotInfo();
+        alert("সংযোগ বিচ্ছিন্ন করা হয়েছে।");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("সংযোগ বিচ্ছিন্ন করতে ব্যর্থ হয়েছে।");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleVersionClick = () => {
+    const nextTaps = versionTaps + 1;
+    if (nextTaps >= 7) {
+      setShowDevMenu(true);
+      setVersionTaps(0);
+      alert("🔓 ডেভেলপার অপশন সক্রিয় হয়েছে!");
+    } else {
+      setVersionTaps(nextTaps);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -239,73 +334,86 @@ export default function Settings({
             <span className="text-gray-300 font-light">&gt;</span>
           </span>
         </div>
-      </div>
 
-      {/* Developer Config Settings Group */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider px-1">সার্ভার ও মিটার কনফিগারেশন</h3>
-
-        {/* Backend Connection URL config */}
+        {/* Telegram Notification card */}
         <div className="premium-card p-5 space-y-4">
-          <h4 className="font-bold text-sm text-gray-800">সার্ভার সংযোগ (API Base URL)</h4>
-          <form onSubmit={(e) => { e.preventDefault(); onUpdateBackendUrl(inputUrl); }} className="space-y-3">
-            <input
-              type="text"
-              value={inputUrl}
-              onChange={(e) => setInputUrl(e.target.value)}
-              placeholder="যেমন: https://meter-pro-api.onrender.com"
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-[#7C6FF0]"
-            />
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-xl bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white font-bold text-xs transition shadow"
-            >
-              সংযোগ ইউআরএল আপডেট করুন
-            </button>
-          </form>
-        </div>
-
-        {/* Telegram Alerts config */}
-        <div className="premium-card p-5 space-y-4">
-          <h4 className="font-bold text-sm text-gray-800">টেলিগ্রাম নোটিফিকেশন সেটিংস</h4>
-          <form onSubmit={handleTelegramSubmit} className="space-y-3">
-            <div>
-              <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">বট টোকেন</label>
-              <div className="relative">
-                <input
-                  type={showToken ? "text" : "password"}
-                  value={botToken}
-                  onChange={(e) => setBotToken(e.target.value)}
-                  placeholder="Bot Token"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 text-xs font-mono focus:outline-none focus:border-[#7C6FF0]"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowToken(!showToken)}
-                  className="absolute right-3 top-2.5 text-gray-500 hover:text-[#7C6FF0]"
-                >
-                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+          <div className="flex items-center justify-between pb-3 border-b border-gray-50">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-[#EDE9FE] text-[#7C6FF0] rounded-xl">
+                <Send className="w-4.5 h-4.5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-gray-800">টেলিগ্রাম নোটিফিকেশন</h4>
+                <p className="text-xs text-gray-500">ব্যালেন্স কমলে টেলিগ্রামে অ্যালার্ট পান</p>
               </div>
             </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">চ্যাট আইডি</label>
-              <input
-                type="text"
-                value={chatId}
-                onChange={(e) => setChatId(e.target.value)}
-                placeholder="Chat ID"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#7C6FF0]"
-              />
+          </div>
+
+          {isLoadingBotInfo ? (
+            <div className="flex items-center justify-center py-2 gap-2 text-xs text-gray-500 font-medium">
+              <Loader className="w-4 h-4 animate-spin text-[#7C6FF0]" />
+              টেলিগ্রাম তথ্য লোড হচ্ছে...
             </div>
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-xl bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white font-bold text-xs transition shadow"
-            >
-              টেলিগ্রাম কনফিগারেশন আপডেট করুন
-            </button>
-          </form>
+          ) : !botInfo.is_configured ? (
+            <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-800 leading-normal">
+              ⚠️ টেলিগ্রাম নোটিফিকেশন বর্তমানে নিষ্ক্রিয় রয়েছে (সার্ভারে Bot Token সেট করা নেই)।
+            </div>
+          ) : botInfo.is_linked ? (
+            <div className="space-y-3">
+              <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-between text-xs text-emerald-800">
+                <span className="font-bold">✅ Telegram সফলভাবে যুক্ত হয়েছে</span>
+                <span className="font-mono bg-emerald-100/50 px-2 py-0.5 rounded text-[10px]">ID: {botInfo.chat_id}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDisconnectTelegram}
+                disabled={isActionLoading}
+                className="w-full py-2.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 text-xs font-bold transition flex items-center justify-center gap-1 active:scale-98"
+              >
+                {isActionLoading ? <Loader className="w-4 h-4 animate-spin" /> : "সংযোগ বিচ্ছিন্ন করুন"}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-600 leading-relaxed">
+                আপনার টেলিগ্রাম অ্যাকাউন্টে অ্যালার্ট পেতে নিচের বাটনে ক্লিক করে আমাদের বটের সাথে চ্যাট শুরু করুন।
+              </p>
+              
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleConnectTelegram}
+                  className="flex-1 py-2.5 rounded-xl bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white font-bold text-xs transition shadow flex items-center justify-center gap-1.5 active:scale-98"
+                >
+                  <Send className="w-3.5 h-3.5 fill-current" />
+                  Telegram-এ যুক্ত করুন
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={fetchBotInfo}
+                  disabled={isActionLoading}
+                  className="px-4 py-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-150 text-gray-700 font-bold text-xs transition flex items-center justify-center gap-1 active:scale-98"
+                  title="রিফ্রেশ করুন"
+                >
+                  {isActionLoading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : "Done"}
+                </button>
+              </div>
+
+              {isPolling && (
+                <div className="flex items-center justify-center gap-2 text-[10px] text-indigo-600 font-bold bg-indigo-50 border border-indigo-100 rounded-lg py-1.5 px-3">
+                  <Loader className="w-3.5 h-3.5 animate-spin text-[#7C6FF0]" />
+                  টেলিগ্রাম সংযোগের জন্য অপেক্ষা করা হচ্ছে (বটে /start চাপুন)...
+                </div>
+              )}
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Meter Management Settings Group */}
+      <div className="space-y-4">
+        <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider px-1">মিটার ব্যবস্থাপনা</h3>
 
         {/* Manage Meters list */}
         <div className="premium-card p-5 space-y-4">
@@ -378,7 +486,12 @@ export default function Settings({
           </div>
           <div className="space-y-3 text-xs text-gray-600">
             <p className="font-black text-gray-800 text-sm">NESCO Balance Tracker</p>
-            <p className="text-[10px] text-gray-500">ভার্সন: 1.0.0 (MVP)</p>
+            <p 
+              onClick={handleVersionClick}
+              className="text-[10px] text-gray-500 cursor-pointer select-none active:text-[#7C6FF0] hover:underline"
+            >
+              ভার্সন: 1.0.0 (MVP) {showDevMenu && "(Developer)"}
+            </p>
             <p className="leading-relaxed">
               প্রোঅ্যাক্টিভ ব্যালেন্স ও বিদ্যুৎ ব্যবহার ট্র্যাকার। এটি NESCO প্রিপেইড মিটার গ্রাহকদের স্বয়ংক্রিয় অ্যালার্ট সিস্টেম।
             </p>
@@ -394,7 +507,33 @@ export default function Settings({
             </div>
           </div>
         </div>
+
+        {/* Gated Developer Menu */}
+        {showDevMenu && (
+          <div className="premium-card p-5 space-y-4 border border-[#7C6FF0]/30 shadow-md bg-indigo-50/20 animate-in fade-in slide-in-from-bottom duration-200">
+            <h4 className="font-black text-sm text-[#7C6FF0] uppercase tracking-wide">👨‍💻 ডেভেলপার অপশন</h4>
+            <div className="space-y-3">
+              <h5 className="font-bold text-xs text-gray-800">সার্ভার সংযোগ (API Base URL)</h5>
+              <form onSubmit={(e) => { e.preventDefault(); onUpdateBackendUrl(inputUrl); }} className="space-y-3">
+                <input
+                  type="text"
+                  value={inputUrl}
+                  onChange={(e) => setInputUrl(e.target.value)}
+                  placeholder="যেমন: https://meter-pro-api.onrender.com"
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-[#7C6FF0]"
+                />
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white font-bold text-xs transition shadow"
+                >
+                  সংযোগ ইউআরএল আপডেট করুন
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

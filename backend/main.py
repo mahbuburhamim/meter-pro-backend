@@ -185,10 +185,11 @@ def fetch_and_save_balance(db: Session, meter: models.Meter) -> models.BalanceSn
     client = NescoClient(meter.meter_number)
     try:
         data = client.fetch_all()
-        # Save customer name if not set
-        if not meter.customer_name and data.get("customer_name"):
+        # Save customer name and due notice
+        if data.get("customer_name"):
             meter.customer_name = data["customer_name"]
-            db.commit()
+        meter.due_notice = data.get("due_notice")
+        db.commit()
 
         snapshot = models.BalanceSnapshot(
             meter_id=meter.id,
@@ -258,8 +259,21 @@ scheduler = BackgroundScheduler()
 
 @app.on_event("startup")
 def startup_event():
-    # Database seeding
+    # Dynamic database migration: add due_notice column if it doesn't exist
+    from sqlalchemy import text
     db = next(get_db())
+    try:
+        db.execute(text("SELECT due_notice FROM meters LIMIT 1"))
+    except Exception:
+        print("Column due_notice not found in meters table. Running ALTER TABLE to add it...")
+        try:
+            db.execute(text("ALTER TABLE meters ADD COLUMN due_notice VARCHAR"))
+            db.commit()
+            print("Successfully added due_notice column to meters table.")
+        except Exception as err:
+            print(f"Error applying migration: {err}")
+            db.rollback()
+
     try:
         # Check if settings exist, if not create empty settings
         settings = db.query(models.AppSettings).first()
@@ -381,7 +395,8 @@ def add_meter(meter_data: schemas.MeterCreate, db: Session = Depends(get_db)):
         days_remaining=days_remaining,
         is_stale=latest_snap.is_stale if latest_snap else False,
         last_fetched_at=latest_snap.fetched_at if latest_snap else None,
-        status=determine_meter_status(balance, new_meter.alert_threshold)
+        status=determine_meter_status(balance, new_meter.alert_threshold),
+        due_notice=new_meter.due_notice
     )
 
 @app.get("/api/meters", response_model=List[schemas.MeterResponse])
@@ -406,7 +421,8 @@ def list_meters(db: Session = Depends(get_db)):
             days_remaining=days_remaining,
             is_stale=latest_snap.is_stale if latest_snap else False,
             last_fetched_at=latest_snap.fetched_at if latest_snap else None,
-            status=determine_meter_status(balance, meter.alert_threshold)
+            status=determine_meter_status(balance, meter.alert_threshold),
+            due_notice=meter.due_notice
         ))
     return results
 
@@ -440,7 +456,8 @@ def update_meter_settings(id: int, data: schemas.MeterUpdate, db: Session = Depe
         days_remaining=days_remaining,
         is_stale=latest_snap.is_stale if latest_snap else False,
         last_fetched_at=latest_snap.fetched_at if latest_snap else None,
-        status=determine_meter_status(balance, meter.alert_threshold)
+        status=determine_meter_status(balance, meter.alert_threshold),
+        due_notice=meter.due_notice
     )
 
 @app.post("/api/meters/{id}/refresh", response_model=schemas.BalanceSnapshotResponse)
@@ -631,8 +648,8 @@ def get_meter_history(id: int, range_str: str = Query("7d", alias="range", patte
 def get_app_settings(db: Session = Depends(get_db)):
     settings = db.query(models.AppSettings).first()
     if not settings:
-        return schemas.SettingsResponse(telegram_bot_token="", telegram_chat_id="")
-    return settings
+        return schemas.SettingsResponse(telegram_chat_id=None)
+    return schemas.SettingsResponse(telegram_chat_id=settings.telegram_chat_id)
 
 @app.post("/api/settings", response_model=schemas.SettingsResponse)
 def update_app_settings(data: schemas.SettingsUpdate, db: Session = Depends(get_db)):
@@ -641,14 +658,168 @@ def update_app_settings(data: schemas.SettingsUpdate, db: Session = Depends(get_
         settings = models.AppSettings()
         db.add(settings)
     
-    if data.telegram_bot_token is not None:
-        settings.telegram_bot_token = data.telegram_bot_token
     if data.telegram_chat_id is not None:
         settings.telegram_chat_id = data.telegram_chat_id
     
     db.commit()
     db.refresh(settings)
-    return settings
+    return schemas.SettingsResponse(telegram_chat_id=settings.telegram_chat_id)
+
+@app.get("/api/telegram/bot-info", response_model=schemas.TelegramBotInfoResponse)
+def get_telegram_bot_info(request: Request, db: Session = Depends(get_db)):
+    settings = db.query(models.AppSettings).first()
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not bot_token and settings:
+        bot_token = settings.telegram_bot_token
+    
+    if not bot_token:
+        return schemas.TelegramBotInfoResponse(
+            is_configured=False,
+            bot_username=None,
+            is_linked=False,
+            chat_id=None
+        )
+        
+    try:
+        r = requests.get(f"https://api.telegram.org/bot{bot_token}/getMe", timeout=5)
+        if r.status_code != 200:
+            return schemas.TelegramBotInfoResponse(
+                is_configured=False,
+                bot_username=None,
+                is_linked=False,
+                chat_id=None
+            )
+        data = r.json()
+        if not data.get("ok"):
+            return schemas.TelegramBotInfoResponse(
+                is_configured=False,
+                bot_username=None,
+                is_linked=False,
+                chat_id=None
+            )
+        bot_username = data["result"]["username"]
+    except Exception as e:
+        print(f"Error fetching telegram bot info: {e}")
+        chat_id = settings.telegram_chat_id if settings else None
+        return schemas.TelegramBotInfoResponse(
+            is_configured=True,
+            bot_username="unknown_bot",
+            is_linked=bool(chat_id),
+            chat_id=chat_id
+        )
+
+    # Register Webhook dynamically
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    netloc = request.url.netloc
+    webhook_url = f"{scheme}://{netloc}/api/telegram/webhook"
+    
+    try:
+        webhook_setup_url = f"https://api.telegram.org/bot{bot_token}/setWebhook?url={webhook_url}"
+        requests.get(webhook_setup_url, timeout=5)
+    except Exception as e:
+        print(f"Failed to register webhook: {e}")
+
+    chat_id = settings.telegram_chat_id if settings else None
+    return schemas.TelegramBotInfoResponse(
+        is_configured=True,
+        bot_username=bot_username,
+        is_linked=bool(chat_id),
+        chat_id=chat_id
+    )
+
+@app.post("/api/telegram/webhook")
+async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
+    try:
+        payload = await request.json()
+        print(f"Received Telegram webhook payload: {payload}")
+    except Exception as e:
+        print(f"Failed to parse webhook JSON: {e}")
+        return {"ok": False, "error": "Invalid JSON"}
+
+    message = payload.get("message")
+    if not message:
+        return {"ok": True}
+
+    chat = message.get("chat")
+    if not chat:
+        return {"ok": True}
+
+    chat_id = str(chat.get("id"))
+    text = message.get("text", "").strip()
+
+    if text.startswith("/start"):
+        parts = text.split(maxsplit=1)
+        meter_param = parts[1].strip() if len(parts) > 1 else None
+
+        if not meter_param:
+            send_telegram_reply(db, chat_id, "⚠️ অনুগ্রহ করে মিটার নম্বরসহ স্টার্ট করুন। যেমন: /start <meter_number>")
+            return {"ok": True}
+
+        # Check if meter exists
+        from sqlalchemy import String, cast
+        meter = db.query(models.Meter).filter(
+            (models.Meter.meter_number == meter_param) | 
+            (cast(models.Meter.id, String) == meter_param)
+        ).first()
+
+        if not meter:
+            send_telegram_reply(db, chat_id, f"❌ দুঃখিত, '{meter_param}' নম্বরওয়ালা কোনো মিটার অ্যাপে খুঁজে পাওয়া যায়নি। অনুগ্রহ করে প্রথমে অ্যাপে মিটারটি যোগ করুন।")
+            return {"ok": True}
+
+        # Update settings chat_id
+        settings = db.query(models.AppSettings).first()
+        if not settings:
+            settings = models.AppSettings()
+            db.add(settings)
+        
+        settings.telegram_chat_id = chat_id
+        db.commit()
+
+        reply_text = (
+            f"✅ *টেলিগ্রাম নোটিফিকেশন সংযোগ সফল হয়েছে!*\n\n"
+            f"মিটার লেবেল: *{meter.label}*\n"
+            f"মিটার নম্বর: `{meter.meter_number}`\n"
+            f"গ্রাহক: {meter.customer_name or 'N/A'}\n\n"
+            f"এখন থেকে এই মিটারের ব্যালেন্স কমে গেলে আপনাকে এই চ্যাটে স্বয়ংক্রিয়ভাবে অ্যালার্ট পাঠানো হবে।"
+        )
+        send_telegram_reply(db, chat_id, reply_text)
+
+    return {"ok": True}
+
+@app.post("/api/telegram/disconnect")
+def disconnect_telegram(db: Session = Depends(get_db)):
+    settings = db.query(models.AppSettings).first()
+    if settings:
+        settings.telegram_chat_id = None
+        db.commit()
+    return {"status": "disconnected"}
+
+def send_telegram_reply(db: Session, chat_id: str, text: str):
+    settings = db.query(models.AppSettings).first()
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not bot_token and settings:
+        bot_token = settings.telegram_bot_token
+    
+    if not bot_token:
+        print("Cannot send reply: Bot token not configured")
+        return False
+
+    try:
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "Markdown"
+        }
+        resp = requests.post(url, json=payload, timeout=10)
+        if resp.status_code != 200:
+            print(f"Failed to send Telegram message: {resp.text}")
+            return False
+        return True
+    except Exception as e:
+        print(f"Error sending Telegram message: {e}")
+        return False
+
 
 @app.post("/api/refresh-all")
 def refresh_all_meters(request: Request, db: Session = Depends(get_db)):

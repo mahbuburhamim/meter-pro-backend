@@ -9,7 +9,8 @@ import {
   Edit3,
   RefreshCw,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Bell
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -31,6 +32,7 @@ export default function Dashboard({
 }) {
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualBalance, setManualBalance] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
 
   if (!meter) {
     return (
@@ -147,12 +149,26 @@ export default function Dashboard({
           <p className="text-xs text-[#EDE9FE] font-bold uppercase tracking-wider">স্বাগতম</p>
           <h2 className="text-3xl font-black tracking-tight">{customer_name || 'গ্রাহক'}</h2>
         </div>
-        <button 
-          onClick={() => onNavigateTab('settings')}
-          className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-10"
-        >
-          <SettingsIcon className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowNotifications(true)}
+            className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-10 relative"
+            title="নোটিফিকেশন"
+          >
+            <Bell className="w-5 h-5" />
+            {meter.due_notice && (
+              <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>
+            )}
+          </button>
+          
+          <button 
+            onClick={() => onNavigateTab('settings')}
+            className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-10"
+            title="সেটিংস"
+          >
+            <SettingsIcon className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Main Elevated Balance Card */}
@@ -182,6 +198,11 @@ export default function Dashboard({
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-bold -mt-2 bg-gray-50/70 border border-gray-100/50 px-2.5 py-1.5 rounded-xl w-fit">
+          <Clock className="w-3.5 h-3.5 text-[#7C6FF0] flex-shrink-0" />
+          <span>ব্যালেন্স প্রতিদিন রাত ১২:০০ AM-এ আপডেট হয়</span>
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs">
@@ -415,6 +436,48 @@ export default function Dashboard({
               <span>বিকাশে প্রবেশ করুন</span>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Modal */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-white text-gray-900 rounded-[32px] w-full max-w-sm p-6 border border-gray-100 shadow-2xl mx-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-[#7C6FF0] pb-3 border-b border-gray-100 mb-4">
+              <div className="p-2.5 bg-[#EDE9FE] text-[#7C6FF0] rounded-xl relative">
+                <Bell className="w-5 h-5" />
+                {meter.due_notice && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
+                )}
+              </div>
+              <h3 className="text-lg font-black text-gray-900">নোটিফিকেশন</h3>
+            </div>
+
+            <div className="my-5 max-h-60 overflow-y-auto pr-1">
+              {meter.due_notice ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-xs text-rose-800 leading-relaxed text-left whitespace-pre-wrap font-medium">
+                    {meter.due_notice}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 text-center text-gray-400 gap-2">
+                  <Bell className="w-10 h-10 stroke-[1.2px]" />
+                  <p className="text-xs font-semibold text-gray-500">কোনো নতুন নোটিফিকেশন নেই।</p>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <button 
+                type="button"
+                onClick={() => setShowNotifications(false)}
+                className="w-full py-3.5 rounded-2xl bg-[#7C6FF0] hover:bg-[#5B4FCF] text-white text-xs font-black transition active:scale-[0.98] shadow-md shadow-indigo-150"
+              >
+                বন্ধ করুন
+              </button>
+            </div>
           </div>
         </div>
       )}

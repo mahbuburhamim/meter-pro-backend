@@ -268,63 +268,107 @@ export default function UsageHistory({
         </div>
       </div>
 
-      {/* Chart Card */}
-      <div className="premium-card p-5 space-y-4 shadow-sm">
-        <div className="h-56 w-full flex items-center justify-center">
+      {/* Chart Card (for 7d and 30d views) */}
+      {selectedRange !== '1y' && (
+        <div className="premium-card p-5 space-y-4 shadow-sm animate-in fade-in duration-200">
+          <div className="h-56 w-full flex items-center justify-center">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#9ca3af" 
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      background: 'rgba(91, 79, 207, 0.9)', 
+                      borderColor: 'transparent',
+                      borderRadius: '12px',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                    }}
+                    itemStyle={{ color: '#ffffff' }}
+                    formatter={(value, name, props) => [`৳${value}`, `তারিখ: ${props.payload.rawDate}`]}
+                    labelFormatter={() => ''}
+                  />
+                  <Bar 
+                    dataKey="usage" 
+                    radius={[4, 4, 0, 0]} 
+                    maxBarSize={30}
+                    label={renderCustomBarLabel}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={getCellFill(entry, index)} 
+                        className="hover:fill-[#5B4FCF] transition duration-150 cursor-pointer"
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500 text-xs">
+                পর্যাপ্ত তথ্য নেই
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Monthly Usage Cards List (for year tab view) */}
+      {selectedRange === '1y' && (
+        <div className="space-y-3 animate-in fade-in duration-200">
           {isMonthlyLoading ? (
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center justify-center py-12 premium-card gap-2">
               <svg className="animate-spin h-6 w-6 text-[#7C6FF0]" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
               <span className="text-xs text-gray-500 font-medium">লোড হচ্ছে...</span>
             </div>
-          ) : chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#9ca3af" 
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'rgba(91, 79, 207, 0.9)', 
-                    borderColor: 'transparent',
-                    borderRadius: '12px',
-                    color: '#ffffff',
-                    fontSize: '11px',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-                  }}
-                  itemStyle={{ color: '#ffffff' }}
-                  formatter={(value, name, props) => [`৳${value}`, `তারিখ: ${props.payload.rawDate}`]}
-                  labelFormatter={() => ''}
-                />
-                <Bar 
-                  dataKey="usage" 
-                  radius={[4, 4, 0, 0]} 
-                  maxBarSize={30}
-                  label={renderCustomBarLabel}
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={getCellFill(entry, index)} 
-                      className="hover:fill-[#5B4FCF] transition duration-150 cursor-pointer"
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          ) : monthlyUsage.length > 0 ? (
+            monthlyUsage.map((item, index) => (
+              <div 
+                key={index} 
+                className="bg-white border border-gray-100/50 p-4 rounded-3xl flex items-center justify-between shadow-xs hover:border-[#7C6FF0]/20 transition duration-200"
+              >
+                {/* Left side circular lightning icon + details */}
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 shadow-xs border border-emerald-100/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  </div>
+                  <div className="space-y-0.5 text-left">
+                    <h4 className="text-base font-bold text-gray-900 tracking-tight">
+                      {item.month}-{item.year}
+                    </h4>
+                    <p className="text-xs text-gray-400 font-bold">
+                      Used: {item.usage} KWH
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right side spend value + chevron arrow */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base font-black text-gray-900">
+                    {item.recharge} Taka
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            ))
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-500 text-xs">
-              পর্যাপ্ত তথ্য নেই
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500 text-xs gap-1.5 premium-card">
+              <Info className="w-4 h-4 text-gray-300" />
+              <span>কোনো তথ্য পাওয়া যায়নি</span>
             </div>
           )}
         </div>
-      </div>
+      )}
 
       {/* Recharge History List */}
       <div className="space-y-4">

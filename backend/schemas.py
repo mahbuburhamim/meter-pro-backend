@@ -22,6 +22,7 @@ class MeterResponse(BaseModel):
     is_stale: Optional[bool] = False
     last_fetched_at: Optional[datetime] = None
     status: Optional[str] = "normal"
+    due_notice: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -41,9 +42,17 @@ class ManualBalanceCreate(BaseModel):
     balance: float
 
 class SettingsResponse(BaseModel):
-    telegram_bot_token: Optional[str] = None
     telegram_chat_id: Optional[str] = None
 
+    class Config:
+        from_attributes = True
+
 class SettingsUpdate(BaseModel):
-    telegram_bot_token: Optional[str] = None
     telegram_chat_id: Optional[str] = None
+
+class TelegramBotInfoResponse(BaseModel):
+    is_configured: bool
+    bot_username: Optional[str] = None
+    is_linked: bool
+    chat_id: Optional[str] = None
+

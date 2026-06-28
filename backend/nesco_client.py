@@ -127,6 +127,10 @@ class NescoClient:
                 except ValueError:
                     pass
 
+            due_notice = self._parse_due_notice(recharge_html)
+            if not due_notice:
+                due_notice = self._parse_due_notice(consumption_html)
+
             return {
                 "balance": balance,
                 "customer_name": customer_name,
@@ -135,11 +139,54 @@ class NescoClient:
                 "monthly_consumption": monthly_consumption,
                 "current_month_consumption": current_month_consumption,
                 "last_reading_time": datetime.datetime.now(),
-                "customer_info": customer_info
+                "customer_info": customer_info,
+                "due_notice": due_notice
             }
 
         except Exception as e:
             raise RuntimeError(f"NESCO fetch failed: {str(e)}")
+
+    def _parse_due_notice(self, html):
+        try:
+            soup = BeautifulSoup(html, 'html.parser')
+            # 1. Search for any elements containing "বকেয়া নোটিশ"
+            for tag in soup.find_all(['div', 'table', 'td', 'p', 'span']):
+                text = tag.get_text(separator="\n").strip()
+                if "বকেয়া নোটিশ" in text and ("সম্মানিত গ্রাহক" in text or "বকেয়া বিল" in text):
+                    lines = [line.strip() for line in text.split("\n") if line.strip()]
+                    # Deduplicate preserving order
+                    seen = set()
+                    clean_lines = []
+                    for l in lines:
+                        if l not in seen:
+                            seen.add(l)
+                            clean_lines.append(l)
+                    if len(clean_lines) >= 2:
+                        return "\n".join(clean_lines)
+                        
+            # 2. Fallback: search for "সম্মানিত গ্রাহক" and "বকেয়া" in any container
+            for tag in soup.find_all(['div', 'table', 'td']):
+                text = tag.get_text(separator="\n").strip()
+                if "সম্মানিত গ্রাহক" in text and ("বকেয়া বিল" in text or "বকেয়া নোটিশ" in text):
+                    # Find the most specific nested container
+                    has_child_match = False
+                    for child in tag.find_all(['div', 'table', 'td']):
+                        child_text = child.get_text().strip()
+                        if "সম্মানিত গ্রাহক" in child_text and ("বকেয়া বিল" in child_text or "বকেয়া নোটিশ" in child_text):
+                            has_child_match = True
+                            break
+                    if not has_child_match:
+                        lines = [line.strip() for line in text.split("\n") if line.strip()]
+                        seen = set()
+                        clean_lines = []
+                        for l in lines:
+                            if l not in seen:
+                                seen.add(l)
+                                clean_lines.append(l)
+                        return "\n".join(clean_lines)
+        except Exception as e:
+            print(f"Error parsing due notice: {e}")
+        return None
 
     def _parse_inputs(self, html):
         soup = BeautifulSoup(html, 'html.parser')
@@ -277,6 +324,17 @@ class NescoClient:
             "min_recharge_amount": "53.00"
         }
 
+        # Mock due notice for Momena Jalil (13030301) or standard test
+        due_notice = None
+        if self.customer_number == "13030301" or self.customer_number.upper() in ["TEST", "DEMO"]:
+            due_notice = (
+                "বকেয়া নোটিশ\n\n"
+                "সম্মানিত গ্রাহক,\n"
+                "আপনার এই গ্রাহক নম্বরের বিপরীতে পূর্বের পোস্ট-পেইড মিটারের মোট বকেয়া বিল 8700.00 টাকা।\n"
+                "অতিদ্রুত উক্ত বকেয়া বিলসমূহ পরিশোধ করুন; অন্যথায়, বিদ্যুৎ সংযোগ বিচ্ছিন্ন করা হবে অথবা উক্ত বকেয়া বিল প্রি-পেইড মিটারের সাথে সমন্বয় করা হবে। "
+                "বকেয়া বিলসমূহ দেখতে ভিジット করুন postpaid.nesco.gov.bd ওয়েবসাইট।"
+            )
+
         return {
             "balance": balance,
             "customer_name": customer_name,
@@ -285,5 +343,6 @@ class NescoClient:
             "monthly_consumption": monthly_consumption,
             "current_month_consumption": current_month_consumption,
             "last_reading_time": datetime.datetime.now(),
-            "customer_info": customer_info
+            "customer_info": customer_info,
+            "due_notice": due_notice
         }

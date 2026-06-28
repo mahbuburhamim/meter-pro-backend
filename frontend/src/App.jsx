@@ -39,7 +39,7 @@ export default function App() {
   const [meters, setMeters] = useState([]);
   const [selectedMeterId, setSelectedMeterId] = useState(null);
   const [historyData, setHistoryData] = useState(null);
-  const [selectedRange, setSelectedRange] = useState('7d');
+  const [selectedRange, setSelectedRange] = useState('1y');
   const [telegramSettings, setTelegramSettings] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -50,6 +50,18 @@ export default function App() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showServerModal, setShowServerModal] = useState(false);
   const [inputUrl, setInputUrl] = useState(localStorage.getItem('backend_url') || 'https://meter-pro-api.onrender.com');
+  const [logoTaps, setLogoTaps] = useState(0);
+
+  const handleLogoClick = () => {
+    const nextTaps = logoTaps + 1;
+    if (nextTaps >= 7) {
+      setShowServerModal(true);
+      setLogoTaps(0);
+      alert("🔓 ডেভেলপার অপশন সক্রিয় হয়েছে (সার্ভার সেটিংস)!");
+    } else {
+      setLogoTaps(nextTaps);
+    }
+  };
 
   // Fetch initial data
   useEffect(() => {
@@ -338,7 +350,11 @@ export default function App() {
           
           {/* Top Logo and Header */}
           <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-3">
+            <div 
+              onClick={handleLogoClick}
+              className="flex items-center gap-3 cursor-pointer select-none active:scale-98 transition-transform"
+              title="Meter Pro"
+            >
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#5B4FCF] shadow-md">
                 <Zap className="w-6 h-6 fill-current text-[#5B4FCF]" />
               </div>
@@ -347,13 +363,6 @@ export default function App() {
                 <p className="text-[10px] text-[#EDE9FE] font-bold uppercase tracking-wider mt-1">প্রিপেইড মিটার ব্যবস্থাপনা</p>
               </div>
             </div>
-            <button 
-              onClick={() => setShowServerModal(true)}
-              className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-10"
-              title="সার্ভার সংযোগ সেটিংস"
-            >
-              <SettingsIcon className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Slogan Intro */}

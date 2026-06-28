@@ -11,6 +11,7 @@ class Meter(Base):
     label = Column(String, nullable=False)
     alert_threshold = Column(Float, default=200.0)
     customer_name = Column(String, nullable=True)
+    due_notice = Column(String, nullable=True)
 
     snapshots = relationship("BalanceSnapshot", back_populates="meter", cascade="all, delete-orphan")
     alerts = relationship("Alert", back_populates="meter", cascade="all, delete-orphan")
