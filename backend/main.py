@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from .database import get_db, engine, Base
+from .database import get_db, engine, Base, SessionLocal
 from . import models, schemas, insights
 from .nesco_client import NescoClient
 
